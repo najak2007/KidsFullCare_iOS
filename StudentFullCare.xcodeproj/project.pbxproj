@@ -11,6 +11,22 @@
 		890B057C300A9B03009DC0E5 /* IntentsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 890B057B300A9B03009DC0E5 /* IntentsUI.framework */; };
 		890B0586300A9B03009DC0E5 /* SiriExtensionUI.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 890B057A300A9B03009DC0E5 /* SiriExtensionUI.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		890B0589300A9B03009DC0E5 /* SiriExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 890B056E300A9B03009DC0E5 /* SiriExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		89AAA4D5300B8B5000C5D2AA /* RealmSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 89AAA4D4300B8B5000C5D2AA /* RealmSwift */; };
+		89AAA4D8300B8BC600C5D2AA /* FirebaseAI in Frameworks */ = {isa = PBXBuildFile; productRef = 89AAA4D7300B8BC600C5D2AA /* FirebaseAI */; };
+		89AAA4DA300B8BC600C5D2AA /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 89AAA4D9300B8BC600C5D2AA /* FirebaseAnalytics */; };
+		89AAA4DC300B8BC600C5D2AA /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = 89AAA4DB300B8BC600C5D2AA /* FirebaseAnalyticsCore */; };
+		89AAA4DE300B8BC600C5D2AA /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 89AAA4DD300B8BC600C5D2AA /* FirebaseCore */; };
+		89AAA4E0300B8BC600C5D2AA /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 89AAA4DF300B8BC600C5D2AA /* FirebaseCrashlytics */; };
+		89AAA4E2300B8BC600C5D2AA /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = 89AAA4E1300B8BC600C5D2AA /* FirebaseDatabase */; };
+		89AAA4E4300B8BC600C5D2AA /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 89AAA4E3300B8BC600C5D2AA /* FirebaseFirestore */; };
+		89AAA4E6300B8BC600C5D2AA /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 89AAA4E5300B8BC600C5D2AA /* FirebaseFunctions */; };
+		89AAA4E8300B8BC600C5D2AA /* FirebaseInAppMessaging-Beta in Frameworks */ = {isa = PBXBuildFile; productRef = 89AAA4E7300B8BC600C5D2AA /* FirebaseInAppMessaging-Beta */; };
+		89AAA4EA300B8BC600C5D2AA /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 89AAA4E9300B8BC600C5D2AA /* FirebaseMessaging */; };
+		89AAA4EC300B8BC600C5D2AA /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = 89AAA4EB300B8BC600C5D2AA /* FirebaseRemoteConfig */; };
+		89AAA4EE300B8BC600C5D2AA /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 89AAA4ED300B8BC600C5D2AA /* FirebaseStorage */; };
+		89AAA4F1300B8C6900C5D2AA /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 89AAA4F0300B8C6900C5D2AA /* Alamofire */; };
+		89AAA4F4300B8C9200C5D2AA /* HapticsManager in Frameworks */ = {isa = PBXBuildFile; productRef = 89AAA4F3300B8C9200C5D2AA /* HapticsManager */; };
+		89AAA5D7300B8CD300C5D2AA /* ConfettiSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 89AAA5D6300B8CD300C5D2AA /* ConfettiSwiftUI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -68,6 +84,13 @@
 			);
 			target = 890B0579300A9B03009DC0E5 /* SiriExtensionUI */;
 		};
+		89AAA4D2300B89D000C5D2AA /* Exceptions for "StudentFullCare" folder in "StudentFullCare" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 89BCBB16300A97DD00FC304B /* StudentFullCare */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -89,6 +112,9 @@
 		};
 		89BCBB19300A97DD00FC304B /* StudentFullCare */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				89AAA4D2300B89D000C5D2AA /* Exceptions for "StudentFullCare" folder in "StudentFullCare" target */,
+			);
 			path = StudentFullCare;
 			sourceTree = "<group>";
 		};
@@ -115,6 +141,22 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				89AAA4F4300B8C9200C5D2AA /* HapticsManager in Frameworks */,
+				89AAA4D5300B8B5000C5D2AA /* RealmSwift in Frameworks */,
+				89AAA4F1300B8C6900C5D2AA /* Alamofire in Frameworks */,
+				89AAA4DE300B8BC600C5D2AA /* FirebaseCore in Frameworks */,
+				89AAA4D8300B8BC600C5D2AA /* FirebaseAI in Frameworks */,
+				89AAA4EC300B8BC600C5D2AA /* FirebaseRemoteConfig in Frameworks */,
+				89AAA5D7300B8CD300C5D2AA /* ConfettiSwiftUI in Frameworks */,
+				89AAA4E6300B8BC600C5D2AA /* FirebaseFunctions in Frameworks */,
+				89AAA4E0300B8BC600C5D2AA /* FirebaseCrashlytics in Frameworks */,
+				89AAA4DA300B8BC600C5D2AA /* FirebaseAnalytics in Frameworks */,
+				89AAA4E4300B8BC600C5D2AA /* FirebaseFirestore in Frameworks */,
+				89AAA4EE300B8BC600C5D2AA /* FirebaseStorage in Frameworks */,
+				89AAA4E2300B8BC600C5D2AA /* FirebaseDatabase in Frameworks */,
+				89AAA4DC300B8BC600C5D2AA /* FirebaseAnalyticsCore in Frameworks */,
+				89AAA4EA300B8BC600C5D2AA /* FirebaseMessaging in Frameworks */,
+				89AAA4E8300B8BC600C5D2AA /* FirebaseInAppMessaging-Beta in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -218,6 +260,22 @@
 			);
 			name = StudentFullCare;
 			packageProductDependencies = (
+				89AAA4D4300B8B5000C5D2AA /* RealmSwift */,
+				89AAA4D7300B8BC600C5D2AA /* FirebaseAI */,
+				89AAA4D9300B8BC600C5D2AA /* FirebaseAnalytics */,
+				89AAA4DB300B8BC600C5D2AA /* FirebaseAnalyticsCore */,
+				89AAA4DD300B8BC600C5D2AA /* FirebaseCore */,
+				89AAA4DF300B8BC600C5D2AA /* FirebaseCrashlytics */,
+				89AAA4E1300B8BC600C5D2AA /* FirebaseDatabase */,
+				89AAA4E3300B8BC600C5D2AA /* FirebaseFirestore */,
+				89AAA4E5300B8BC600C5D2AA /* FirebaseFunctions */,
+				89AAA4E7300B8BC600C5D2AA /* FirebaseInAppMessaging-Beta */,
+				89AAA4E9300B8BC600C5D2AA /* FirebaseMessaging */,
+				89AAA4EB300B8BC600C5D2AA /* FirebaseRemoteConfig */,
+				89AAA4ED300B8BC600C5D2AA /* FirebaseStorage */,
+				89AAA4F0300B8C6900C5D2AA /* Alamofire */,
+				89AAA4F3300B8C9200C5D2AA /* HapticsManager */,
+				89AAA5D6300B8CD300C5D2AA /* ConfettiSwiftUI */,
 			);
 			productName = StudentFullCare;
 			productReference = 89BCBB17300A97DD00FC304B /* StudentFullCare.app */;
@@ -253,6 +311,13 @@
 			);
 			mainGroup = 89BCBB0E300A97DD00FC304B;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				89AAA4D3300B8B5000C5D2AA /* XCRemoteSwiftPackageReference "realm-swift" */,
+				89AAA4D6300B8BC600C5D2AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				89AAA4EF300B8C6900C5D2AA /* XCRemoteSwiftPackageReference "Alamofire" */,
+				89AAA4F2300B8C9200C5D2AA /* XCRemoteSwiftPackageReference "HapticsManager" */,
+				89AAA5D5300B8CD300C5D2AA /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 89BCBB18300A97DD00FC304B /* Products */;
 			projectDirPath = "";
@@ -611,6 +676,7 @@
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = AU6LM48MPU;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = StudentFullCare/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "엄마의 마음";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -653,6 +719,7 @@
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = AU6LM48MPU;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = StudentFullCare/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "엄마의 마음";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -722,6 +789,132 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		89AAA4D3300B8B5000C5D2AA /* XCRemoteSwiftPackageReference "realm-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/realm/realm-swift.git";
+			requirement = {
+				branch = community;
+				kind = branch;
+			};
+		};
+		89AAA4D6300B8BC600C5D2AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.16.0;
+			};
+		};
+		89AAA4EF300B8C6900C5D2AA /* XCRemoteSwiftPackageReference "Alamofire" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Alamofire/Alamofire.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.12.0;
+			};
+		};
+		89AAA4F2300B8C9200C5D2AA /* XCRemoteSwiftPackageReference "HapticsManager" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/markbattistella/HapticsManager.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 26.5.26;
+			};
+		};
+		89AAA5D5300B8CD300C5D2AA /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/simibac/ConfettiSwiftUI.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		89AAA4D4300B8B5000C5D2AA /* RealmSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 89AAA4D3300B8B5000C5D2AA /* XCRemoteSwiftPackageReference "realm-swift" */;
+			productName = RealmSwift;
+		};
+		89AAA4D7300B8BC600C5D2AA /* FirebaseAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 89AAA4D6300B8BC600C5D2AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAI;
+		};
+		89AAA4D9300B8BC600C5D2AA /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 89AAA4D6300B8BC600C5D2AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
+		};
+		89AAA4DB300B8BC600C5D2AA /* FirebaseAnalyticsCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 89AAA4D6300B8BC600C5D2AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalyticsCore;
+		};
+		89AAA4DD300B8BC600C5D2AA /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 89AAA4D6300B8BC600C5D2AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		89AAA4DF300B8BC600C5D2AA /* FirebaseCrashlytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 89AAA4D6300B8BC600C5D2AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCrashlytics;
+		};
+		89AAA4E1300B8BC600C5D2AA /* FirebaseDatabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 89AAA4D6300B8BC600C5D2AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseDatabase;
+		};
+		89AAA4E3300B8BC600C5D2AA /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 89AAA4D6300B8BC600C5D2AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		89AAA4E5300B8BC600C5D2AA /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 89AAA4D6300B8BC600C5D2AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
+		};
+		89AAA4E7300B8BC600C5D2AA /* FirebaseInAppMessaging-Beta */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 89AAA4D6300B8BC600C5D2AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = "FirebaseInAppMessaging-Beta";
+		};
+		89AAA4E9300B8BC600C5D2AA /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 89AAA4D6300B8BC600C5D2AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		89AAA4EB300B8BC600C5D2AA /* FirebaseRemoteConfig */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 89AAA4D6300B8BC600C5D2AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseRemoteConfig;
+		};
+		89AAA4ED300B8BC600C5D2AA /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 89AAA4D6300B8BC600C5D2AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+		89AAA4F0300B8C6900C5D2AA /* Alamofire */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 89AAA4EF300B8C6900C5D2AA /* XCRemoteSwiftPackageReference "Alamofire" */;
+			productName = Alamofire;
+		};
+		89AAA4F3300B8C9200C5D2AA /* HapticsManager */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 89AAA4F2300B8C9200C5D2AA /* XCRemoteSwiftPackageReference "HapticsManager" */;
+			productName = HapticsManager;
+		};
+		89AAA5D6300B8CD300C5D2AA /* ConfettiSwiftUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 89AAA5D5300B8CD300C5D2AA /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */;
+			productName = ConfettiSwiftUI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 89BCBB0F300A97DD00FC304B /* Project object */;
 }

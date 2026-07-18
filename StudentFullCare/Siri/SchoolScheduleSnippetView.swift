@@ -29,8 +29,8 @@ struct SchoolScheduleSnippetView: View {
                         Image(systemName: "book.pages")
                             .foregroundColor(.blue)
                         
-                        Text(item)
-                            .font(.body)
+//                        Text(item)
+//                            .font(.body)
                     }
                 }
             }

@@ -8,8 +8,6 @@
 import Foundation
 
 class SchoolAPIManager: NSObject {
-    
-    
     static func fetchSchedult(for: Date) -> ScheduleInfo {
         return ScheduleInfo(schedule: .today, isActive: true)
     }
