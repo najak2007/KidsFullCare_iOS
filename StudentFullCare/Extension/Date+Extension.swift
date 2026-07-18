@@ -11,4 +11,12 @@ extension Date {
     static var today: Date {
         return Date()
     }
+    
+    func getDataID() -> String {
+        let date: Date = Date()
+        let dateFormatter: DateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyyMMddHHmmss"
+        let newID: String = dateFormatter.string(from: date)
+        return newID
+    }
 }
