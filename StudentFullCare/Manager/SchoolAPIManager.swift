@@ -6,9 +6,17 @@
 //
 
 import Foundation
+import Alamofire
 
-class SchoolAPIManager: NSObject {
-    static func fetchSchedult(for: Date) -> ScheduleInfo {
-        return ScheduleInfo(schedule: .today, isActive: true)
-    }
+class SchoolAPIManager {
+    static let shared = SchoolAPIManager()
+    private init() {}
+    
+//    func fetchSchedule(for dateString: String) async throws -> [] {
+//        return []
+//    }
+    
+//    func fetchSchoolInfo(for dateString: String) async throws -> SchoolResponseInfo {
+//        
+//    }
 }

@@ -13,6 +13,6 @@ class SchoolViewModel: ObservableObject {
     @Published var schoolInfo: SchoolResponseInfo? = nil
     @Published var isLoading: Bool = false
     
-    let url = ""
+    let schollInfoURL = "https://open.neis.go.kr/hub/schoolInfo?KEY=\(Config.authKey)&Type=json&pIndex=1&pSize=10"
     
 }
