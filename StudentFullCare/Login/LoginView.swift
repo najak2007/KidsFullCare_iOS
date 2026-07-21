@@ -7,9 +7,16 @@
 
 import SwiftUI
 import AuthenticationServices
+import FirebaseFirestore
+import FirebaseRemoteConfig
+import FirebaseAuth
 
 struct LoginView: View {
     @State private var loginMessage = "로그인이 필요합니다."
+    @State private var fullName: PersonNameComponents? = nil
+    @State private var email: String? = nil
+    @State private var userIdentifier: String? = nil
+    @State private var loginToken: String = ""
     
     var body: some View {
         VStack(spacing: 20) {
@@ -36,16 +43,18 @@ struct LoginView: View {
     
     private func handleSignInResult(_ result: Result<ASAuthorization, Error>) {
         switch result {
-        case .success(var authorization):
+        case .success(let authorization):
             if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
-                let userIdentifier = appleIDCredential.user
-                let fullName = appleIDCredential.fullName
-                let email = appleIDCredential.email
+                userIdentifier = appleIDCredential.user
+                fullName = appleIDCredential.fullName
+                email = appleIDCredential.email
                 
                 if let identityToken = appleIDCredential.identityToken,
                    let tokenString = String(data: identityToken, encoding: .utf8) {
                     print("Identity Token: \(tokenString)")
                     // TODO: 이 토큰을 자체 백앤드 서버로 보내 위변조 검증을 수행해야 안전합니다.
+                    loginToken = tokenString
+                    login()
                 }
                 print("User ID: \(userIdentifier)")
                 print("Email: \(email ?? "알수 없음")")
@@ -53,14 +62,22 @@ struct LoginView: View {
                     print("Name: \(name.givenName ?? "") \(name.familyName ?? "")")
                 }
                 
-                withAnimation {
-                    loginMessage = "로그인 성고! 사용자 ID : \(userIdentifier.prefix(8))..."
-                }
+//                withAnimation {
+//                    loginMessage = "로그인 성공! 사용자 ID : \(userIdentifier.prefix(8))..."
+//                }
             }
         case .failure(let error):
             print("Apple 로그인 실패: \(error.localizedDescription)")
             withAnimation {
                 loginMessage = "로그인에 실패했습니다."
+            }
+        }
+    }
+    
+    private func login() {
+        Auth.auth().signIn(withCustomToken: loginToken) { result, error in
+            if let error = error {
+                
             }
         }
     }
