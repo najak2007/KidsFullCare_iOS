@@ -16,6 +16,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         
         FirebaseApp.configure()
 
+        Messaging.messaging().delegate = NotificationManager.shared
+        
         UNUserNotificationCenter.current().delegate = NotificationManager.shared
         UNUserNotificationCenter.current().requestAuthorization(
             options: [.alert, .badge, .sound]
