@@ -17,6 +17,7 @@ struct LoginView: View {
     @State private var email: String? = nil
     @State private var userIdentifier: String? = nil
     @State private var loginToken: String = ""
+    @State private var signInManager = AppleSignInManager()
     
     var body: some View {
         VStack(spacing: 20) {
@@ -28,7 +29,10 @@ struct LoginView: View {
             SignInWithAppleButton(
                 .signIn,
                 onRequest: { request in
+                    let nonce = signInManager.randomNonceString()
+                    signInManager.currentNonce = nonce
                     request.requestedScopes = [.fullName, .email]
+                    request.nonce = signInManager.sha256(nonce)
                 },
                 onCompletion: { result in
                     handleSignInResult(result)
@@ -44,6 +48,9 @@ struct LoginView: View {
     private func handleSignInResult(_ result: Result<ASAuthorization, Error>) {
         switch result {
         case .success(let authorization):
+#if true
+            signInManager.handleAuthorization(authorization)
+#else
             if let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential {
                 userIdentifier = appleIDCredential.user
                 fullName = appleIDCredential.fullName
@@ -61,23 +68,13 @@ struct LoginView: View {
                 if let name = fullName {
                     print("Name: \(name.givenName ?? "") \(name.familyName ?? "")")
                 }
-                
-//                withAnimation {
-//                    loginMessage = "로그인 성공! 사용자 ID : \(userIdentifier.prefix(8))..."
-//                }
+
             }
+#endif
         case .failure(let error):
             print("Apple 로그인 실패: \(error.localizedDescription)")
             withAnimation {
                 loginMessage = "로그인에 실패했습니다."
-            }
-        }
-    }
-    
-    private func login() {
-        Auth.auth().signIn(withCustomToken: loginToken) { result, error in
-            if let error = error {
-                
             }
         }
     }
