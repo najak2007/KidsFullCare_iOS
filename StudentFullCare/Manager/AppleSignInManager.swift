@@ -76,7 +76,6 @@ class AppleSignInManager: NSObject {
                 return
             }
             print("로그인 성공: \(authResult?.user.uid ?? "")")
-            // TODO: LHHouseNoti 유저 문서 생성/업데이트, App Group UserDefaults 갱신 등
         }
     }
 }

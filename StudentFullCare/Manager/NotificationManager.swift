@@ -66,8 +66,6 @@ extension NotificationManager: MessagingDelegate {
             print("로그인 유저 없음 → 토큰 저장 생략")
             return
         }
-
-        print("userId = \(userId)")
         
         Firestore.firestore()
             .collection("users")

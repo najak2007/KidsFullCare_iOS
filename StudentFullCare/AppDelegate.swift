@@ -9,10 +9,27 @@ import UIKit
 import Firebase
 import FirebaseMessaging
 import UserNotifications
+import FirebaseAppCheck
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        
+#if DEBUG
+        // 개발/테스트 환경용 디버그 제공업체
+        let providerFactory = AppCheckDebugProviderFactory()
+        AppCheck.setAppCheckProviderFactory(providerFactory)
+#else
+        // 실기기 / 배포용 App Attest 제공업체 설정
+        if #available(iOS 14.0, *) {
+            let providerFactory = AppAttestProviderFactory()
+            AppCheck.setAppCheckProviderFactory(providerFactory)
+        } else {
+            // iOS 14 미만 대응용 DeviceCheck
+            let providerFactory = DeviceCheckProviderFactory()
+            AppCheck.setAppCheckProviderFactory(providerFactory)
+        }
+#endif
         
         FirebaseApp.configure()
 

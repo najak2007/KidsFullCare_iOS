@@ -13,34 +13,50 @@ import FirebaseAuth
 
 struct LoginView: View {
     @State private var loginMessage = "로그인이 필요합니다."
+    @State private var isLoginReq: Bool = false
+    
     @State private var fullName: PersonNameComponents? = nil
     @State private var email: String? = nil
     @State private var userIdentifier: String? = nil
     @State private var loginToken: String = ""
     @State private var signInManager = AppleSignInManager()
     
+    init() {
+        guard let _ = Auth.auth().currentUser?.uid else {
+            loginMessage = "이미 로그인되어 있습니다."
+            return
+        }
+        isLoginReq = true
+    }
+    
     var body: some View {
         VStack(spacing: 20) {
-            Text(loginMessage)
+            if isLoginReq == false {
+                Text(loginMessage)
                 .font(.headline)
                 .padding()
-            
-            // 1. SwiftUI 전용 Sign In with Apple 버튼 배경
-            SignInWithAppleButton(
-                .signIn,
-                onRequest: { request in
-                    let nonce = signInManager.randomNonceString()
-                    signInManager.currentNonce = nonce
-                    request.requestedScopes = [.fullName, .email]
-                    request.nonce = signInManager.sha256(nonce)
-                },
-                onCompletion: { result in
-                    handleSignInResult(result)
+            } else {
+                Text(loginMessage)
+                .font(.headline)
+                .padding()
+                
+                // 1. SwiftUI 전용 Sign In with Apple 버튼 배경
+                SignInWithAppleButton(
+                    .signIn,
+                    onRequest: { request in
+                        let nonce = signInManager.randomNonceString()
+                        signInManager.currentNonce = nonce
+                        request.requestedScopes = [.fullName, .email]
+                        request.nonce = signInManager.sha256(nonce)
+                    },
+                    onCompletion: { result in
+                        handleSignInResult(result)
+                    }
+                )
+                .signInWithAppleButtonStyle(.black)
+                .frame(width: 280, height: 45)
+                .cornerRadius(8)
                 }
-            )
-            .signInWithAppleButtonStyle(.black)
-            .frame(width: 280, height: 45)
-            .cornerRadius(8)
         }
         .padding()
     }
