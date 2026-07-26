@@ -7,10 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		890B0571300A9B03009DC0E5 /* Intents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 890B0570300A9B03009DC0E5 /* Intents.framework */; };
-		890B057C300A9B03009DC0E5 /* IntentsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 890B057B300A9B03009DC0E5 /* IntentsUI.framework */; };
-		890B0586300A9B03009DC0E5 /* SiriExtensionUI.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 890B057A300A9B03009DC0E5 /* SiriExtensionUI.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		890B0589300A9B03009DC0E5 /* SiriExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 890B056E300A9B03009DC0E5 /* SiriExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		8922CF1D300DE072008DA3D4 /* RealmSwift in Embed Frameworks */ = {isa = PBXBuildFile; productRef = 89AAA4D4300B8B5000C5D2AA /* RealmSwift */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		8922CF2A300DE502008DA3D4 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 8922CF29300DE502008DA3D4 /* FirebaseAuth */; };
 		89AAA4D5300B8B5000C5D2AA /* RealmSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 89AAA4D4300B8B5000C5D2AA /* RealmSwift */; };
 		89AAA4D8300B8BC600C5D2AA /* FirebaseAI in Frameworks */ = {isa = PBXBuildFile; productRef = 89AAA4D7300B8BC600C5D2AA /* FirebaseAI */; };
 		89AAA4DA300B8BC600C5D2AA /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 89AAA4D9300B8BC600C5D2AA /* FirebaseAnalytics */; };
@@ -29,23 +27,6 @@
 		89AAA5D7300B8CD300C5D2AA /* ConfettiSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 89AAA5D6300B8CD300C5D2AA /* ConfettiSwiftUI */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXContainerItemProxy section */
-		890B0584300A9B03009DC0E5 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 89BCBB0F300A97DD00FC304B /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 890B0579300A9B03009DC0E5;
-			remoteInfo = SiriExtensionUI;
-		};
-		890B0587300A9B03009DC0E5 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 89BCBB0F300A97DD00FC304B /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 890B056D300A9B03009DC0E5;
-			remoteInfo = SiriExtension;
-		};
-/* End PBXContainerItemProxy section */
-
 /* Begin PBXCopyFilesBuildPhase section */
 		890B058A300A9B03009DC0E5 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
@@ -53,37 +34,30 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				890B0586300A9B03009DC0E5 /* SiriExtensionUI.appex in Embed Foundation Extensions */,
-				890B0589300A9B03009DC0E5 /* SiriExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8922CF1E300DE072008DA3D4 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				8922CF1D300DE072008DA3D4 /* RealmSwift in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		890B056E300A9B03009DC0E5 /* SiriExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SiriExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		890B0570300A9B03009DC0E5 /* Intents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Intents.framework; path = System/Library/Frameworks/Intents.framework; sourceTree = SDKROOT; };
-		890B057A300A9B03009DC0E5 /* SiriExtensionUI.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SiriExtensionUI.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		890B057B300A9B03009DC0E5 /* IntentsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IntentsUI.framework; path = System/Library/Frameworks/IntentsUI.framework; sourceTree = SDKROOT; };
 		89BCBB17300A97DD00FC304B /* StudentFullCare.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StudentFullCare.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		890B058F300A9B03009DC0E5 /* Exceptions for "SiriExtension" folder in "SiriExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 890B056D300A9B03009DC0E5 /* SiriExtension */;
-		};
-		890B0591300A9B03009DC0E5 /* Exceptions for "SiriExtensionUI" folder in "SiriExtensionUI" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 890B0579300A9B03009DC0E5 /* SiriExtensionUI */;
-		};
 		89AAA4D2300B89D000C5D2AA /* Exceptions for "StudentFullCare" folder in "StudentFullCare" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -96,17 +70,11 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		890B0572300A9B03009DC0E5 /* SiriExtension */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				890B058F300A9B03009DC0E5 /* Exceptions for "SiriExtension" folder in "SiriExtension" target */,
-			);
 			path = SiriExtension;
 			sourceTree = "<group>";
 		};
 		890B057D300A9B03009DC0E5 /* SiriExtensionUI */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				890B0591300A9B03009DC0E5 /* Exceptions for "SiriExtensionUI" folder in "SiriExtensionUI" target */,
-			);
 			path = SiriExtensionUI;
 			sourceTree = "<group>";
 		};
@@ -121,28 +89,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		890B056B300A9B03009DC0E5 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				890B0571300A9B03009DC0E5 /* Intents.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		890B0577300A9B03009DC0E5 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				890B057C300A9B03009DC0E5 /* IntentsUI.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		89BCBB14300A97DD00FC304B /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				89AAA4F4300B8C9200C5D2AA /* HapticsManager in Frameworks */,
 				89AAA4D5300B8B5000C5D2AA /* RealmSwift in Frameworks */,
+				8922CF2A300DE502008DA3D4 /* FirebaseAuth in Frameworks */,
 				89AAA4F1300B8C6900C5D2AA /* Alamofire in Frameworks */,
 				89AAA4DE300B8BC600C5D2AA /* FirebaseCore in Frameworks */,
 				89AAA4D8300B8BC600C5D2AA /* FirebaseAI in Frameworks */,
@@ -187,8 +140,6 @@
 			isa = PBXGroup;
 			children = (
 				89BCBB17300A97DD00FC304B /* StudentFullCare.app */,
-				890B056E300A9B03009DC0E5 /* SiriExtension.appex */,
-				890B057A300A9B03009DC0E5 /* SiriExtensionUI.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -196,50 +147,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		890B056D300A9B03009DC0E5 /* SiriExtension */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 890B0590300A9B03009DC0E5 /* Build configuration list for PBXNativeTarget "SiriExtension" */;
-			buildPhases = (
-				890B056A300A9B03009DC0E5 /* Sources */,
-				890B056B300A9B03009DC0E5 /* Frameworks */,
-				890B056C300A9B03009DC0E5 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				890B0572300A9B03009DC0E5 /* SiriExtension */,
-			);
-			name = SiriExtension;
-			packageProductDependencies = (
-			);
-			productName = SiriExtension;
-			productReference = 890B056E300A9B03009DC0E5 /* SiriExtension.appex */;
-			productType = "com.apple.product-type.app-extension";
-		};
-		890B0579300A9B03009DC0E5 /* SiriExtensionUI */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 890B0592300A9B03009DC0E5 /* Build configuration list for PBXNativeTarget "SiriExtensionUI" */;
-			buildPhases = (
-				890B0576300A9B03009DC0E5 /* Sources */,
-				890B0577300A9B03009DC0E5 /* Frameworks */,
-				890B0578300A9B03009DC0E5 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				890B057D300A9B03009DC0E5 /* SiriExtensionUI */,
-			);
-			name = SiriExtensionUI;
-			packageProductDependencies = (
-			);
-			productName = SiriExtensionUI;
-			productReference = 890B057A300A9B03009DC0E5 /* SiriExtensionUI.appex */;
-			productType = "com.apple.product-type.app-extension";
-		};
 		89BCBB16300A97DD00FC304B /* StudentFullCare */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 89BCBB22300A97DE00FC304B /* Build configuration list for PBXNativeTarget "StudentFullCare" */;
@@ -248,12 +155,11 @@
 				89BCBB14300A97DD00FC304B /* Frameworks */,
 				89BCBB15300A97DD00FC304B /* Resources */,
 				890B058A300A9B03009DC0E5 /* Embed Foundation Extensions */,
+				8922CF1E300DE072008DA3D4 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				890B0585300A9B03009DC0E5 /* PBXTargetDependency */,
-				890B0588300A9B03009DC0E5 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				89BCBB19300A97DD00FC304B /* StudentFullCare */,
@@ -276,6 +182,7 @@
 				89AAA4F0300B8C6900C5D2AA /* Alamofire */,
 				89AAA4F3300B8C9200C5D2AA /* HapticsManager */,
 				89AAA5D6300B8CD300C5D2AA /* ConfettiSwiftUI */,
+				8922CF29300DE502008DA3D4 /* FirebaseAuth */,
 			);
 			productName = StudentFullCare;
 			productReference = 89BCBB17300A97DD00FC304B /* StudentFullCare.app */;
@@ -291,12 +198,6 @@
 				LastSwiftUpdateCheck = 2660;
 				LastUpgradeCheck = 2660;
 				TargetAttributes = {
-					890B056D300A9B03009DC0E5 = {
-						CreatedOnToolsVersion = 26.6;
-					};
-					890B0579300A9B03009DC0E5 = {
-						CreatedOnToolsVersion = 26.6;
-					};
 					89BCBB16300A97DD00FC304B = {
 						CreatedOnToolsVersion = 26.6;
 					};
@@ -324,27 +225,11 @@
 			projectRoot = "";
 			targets = (
 				89BCBB16300A97DD00FC304B /* StudentFullCare */,
-				890B056D300A9B03009DC0E5 /* SiriExtension */,
-				890B0579300A9B03009DC0E5 /* SiriExtensionUI */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		890B056C300A9B03009DC0E5 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		890B0578300A9B03009DC0E5 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		89BCBB15300A97DD00FC304B /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -355,20 +240,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		890B056A300A9B03009DC0E5 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		890B0576300A9B03009DC0E5 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		89BCBB13300A97DD00FC304B /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -378,172 +249,7 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
-/* Begin PBXTargetDependency section */
-		890B0585300A9B03009DC0E5 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 890B0579300A9B03009DC0E5 /* SiriExtensionUI */;
-			targetProxy = 890B0584300A9B03009DC0E5 /* PBXContainerItemProxy */;
-		};
-		890B0588300A9B03009DC0E5 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 890B056D300A9B03009DC0E5 /* SiriExtension */;
-			targetProxy = 890B0587300A9B03009DC0E5 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
-
 /* Begin XCBuildConfiguration section */
-		890B058B300A9B03009DC0E5 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = SiriExtension/SiriExtension.entitlements;
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
-				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = AU6LM48MPU;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = SiriExtension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = SiriExtension;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.najak.StudentFullCare.SiriExtension;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "우리애기돌봄_SiriExtension_20260718";
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		890B058C300A9B03009DC0E5 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = SiriExtension/SiriExtension.entitlements;
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
-				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = AU6LM48MPU;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = SiriExtension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = SiriExtension;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.najak.StudentFullCare.SiriExtension;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "우리애기돌봄_SiriExtension_20260718";
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
-		890B058D300A9B03009DC0E5 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = SiriExtensionUI/SiriExtensionUI.entitlements;
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
-				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = AU6LM48MPU;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = SiriExtensionUI/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = SiriExtensionUI;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.najak.StudentFullCare.SiriExtensionUI;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "우리애기돌봄_SiriUIExtension_20260718";
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		890B058E300A9B03009DC0E5 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = SiriExtensionUI/SiriExtensionUI.entitlements;
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
-				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = AU6LM48MPU;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = SiriExtensionUI/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = SiriExtensionUI;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.najak.StudentFullCare.SiriExtensionUI;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "우리애기돌봄_SiriUIExtension_20260718";
-				SKIP_INSTALL = YES;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
 		89BCBB20300A97DE00FC304B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -673,7 +379,7 @@
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = AU6LM48MPU;
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 9KH64W7EHZ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = StudentFullCare/Info.plist;
@@ -688,10 +394,10 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.najak.sutdentfullcare;
+				PRODUCT_BUNDLE_IDENTIFIER = com.najak.StudentFullCare;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "우리애기돌봄_20260718";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "애기돌봄_20260724";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -716,7 +422,7 @@
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = AU6LM48MPU;
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 9KH64W7EHZ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = StudentFullCare/Info.plist;
@@ -731,10 +437,10 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.najak.sutdentfullcare;
+				PRODUCT_BUNDLE_IDENTIFIER = com.najak.StudentFullCare;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "우리애기돌봄_20260718";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "애기돌봄_20260724";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -752,24 +458,6 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		890B0590300A9B03009DC0E5 /* Build configuration list for PBXNativeTarget "SiriExtension" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				890B058B300A9B03009DC0E5 /* Debug */,
-				890B058C300A9B03009DC0E5 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		890B0592300A9B03009DC0E5 /* Build configuration list for PBXNativeTarget "SiriExtensionUI" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				890B058D300A9B03009DC0E5 /* Debug */,
-				890B058E300A9B03009DC0E5 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		89BCBB12300A97DD00FC304B /* Build configuration list for PBXProject "StudentFullCare" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -834,6 +522,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		8922CF29300DE502008DA3D4 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 89AAA4D6300B8BC600C5D2AA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
 		89AAA4D4300B8B5000C5D2AA /* RealmSwift */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 89AAA4D3300B8B5000C5D2AA /* XCRemoteSwiftPackageReference "realm-swift" */;

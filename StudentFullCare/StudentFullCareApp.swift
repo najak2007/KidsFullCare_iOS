@@ -9,9 +9,13 @@ import SwiftUI
 
 @main
 struct StudentFullCareApp: App {
+    
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(NotificationManager.shared)
         }
     }
 }
