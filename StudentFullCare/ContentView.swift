@@ -11,7 +11,11 @@ import FirebaseAuth
 struct ContentView: View {
     var body: some View {
         VStack {
+#if true
+            IntroView()
+#else
             LoginView()
+#endif
         }
         .padding()
     }
