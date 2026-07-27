@@ -54,36 +54,26 @@
 /* Begin PBXFileReference section */
 		890B0570300A9B03009DC0E5 /* Intents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Intents.framework; path = System/Library/Frameworks/Intents.framework; sourceTree = SDKROOT; };
 		890B057B300A9B03009DC0E5 /* IntentsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IntentsUI.framework; path = System/Library/Frameworks/IntentsUI.framework; sourceTree = SDKROOT; };
-		89BCBB17300A97DD00FC304B /* StudentFullCare.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StudentFullCare.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		89BCBB17300A97DD00FC304B /* KidsFullCare.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KidsFullCare.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		89AAA4D2300B89D000C5D2AA /* Exceptions for "StudentFullCare" folder in "StudentFullCare" target */ = {
+		89AAA4D2300B89D000C5D2AA /* Exceptions for "KidsFullCare" folder in "KidsFullCare" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 89BCBB16300A97DD00FC304B /* StudentFullCare */;
+			target = 89BCBB16300A97DD00FC304B /* KidsFullCare */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		890B0572300A9B03009DC0E5 /* SiriExtension */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = SiriExtension;
-			sourceTree = "<group>";
-		};
-		890B057D300A9B03009DC0E5 /* SiriExtensionUI */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = SiriExtensionUI;
-			sourceTree = "<group>";
-		};
-		89BCBB19300A97DD00FC304B /* StudentFullCare */ = {
+		89BCBB19300A97DD00FC304B /* KidsFullCare */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				89AAA4D2300B89D000C5D2AA /* Exceptions for "StudentFullCare" folder in "StudentFullCare" target */,
+				89AAA4D2300B89D000C5D2AA /* Exceptions for "KidsFullCare" folder in "KidsFullCare" target */,
 			);
-			path = StudentFullCare;
+			path = KidsFullCare;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -128,9 +118,7 @@
 		89BCBB0E300A97DD00FC304B = {
 			isa = PBXGroup;
 			children = (
-				89BCBB19300A97DD00FC304B /* StudentFullCare */,
-				890B0572300A9B03009DC0E5 /* SiriExtension */,
-				890B057D300A9B03009DC0E5 /* SiriExtensionUI */,
+				89BCBB19300A97DD00FC304B /* KidsFullCare */,
 				890B056F300A9B03009DC0E5 /* Frameworks */,
 				89BCBB18300A97DD00FC304B /* Products */,
 			);
@@ -139,7 +127,7 @@
 		89BCBB18300A97DD00FC304B /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				89BCBB17300A97DD00FC304B /* StudentFullCare.app */,
+				89BCBB17300A97DD00FC304B /* KidsFullCare.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -147,9 +135,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		89BCBB16300A97DD00FC304B /* StudentFullCare */ = {
+		89BCBB16300A97DD00FC304B /* KidsFullCare */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 89BCBB22300A97DE00FC304B /* Build configuration list for PBXNativeTarget "StudentFullCare" */;
+			buildConfigurationList = 89BCBB22300A97DE00FC304B /* Build configuration list for PBXNativeTarget "KidsFullCare" */;
 			buildPhases = (
 				89BCBB13300A97DD00FC304B /* Sources */,
 				89BCBB14300A97DD00FC304B /* Frameworks */,
@@ -162,9 +150,9 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				89BCBB19300A97DD00FC304B /* StudentFullCare */,
+				89BCBB19300A97DD00FC304B /* KidsFullCare */,
 			);
-			name = StudentFullCare;
+			name = KidsFullCare;
 			packageProductDependencies = (
 				89AAA4D4300B8B5000C5D2AA /* RealmSwift */,
 				89AAA4D7300B8BC600C5D2AA /* FirebaseAI */,
@@ -184,8 +172,8 @@
 				89AAA5D6300B8CD300C5D2AA /* ConfettiSwiftUI */,
 				8922CF29300DE502008DA3D4 /* FirebaseAuth */,
 			);
-			productName = StudentFullCare;
-			productReference = 89BCBB17300A97DD00FC304B /* StudentFullCare.app */;
+			productName = KidsFullCare;
+			productReference = 89BCBB17300A97DD00FC304B /* KidsFullCare.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -203,7 +191,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 89BCBB12300A97DD00FC304B /* Build configuration list for PBXProject "StudentFullCare" */;
+			buildConfigurationList = 89BCBB12300A97DD00FC304B /* Build configuration list for PBXProject "KidsFullCare" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -224,7 +212,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				89BCBB16300A97DD00FC304B /* StudentFullCare */,
+				89BCBB16300A97DD00FC304B /* KidsFullCare */,
 			);
 		};
 /* End PBXProject section */
@@ -374,7 +362,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = StudentFullCare/StudentFullCare.entitlements;
+				CODE_SIGN_ENTITLEMENTS = KidsFullCare/KidsFullCare.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
@@ -382,7 +370,7 @@
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 9KH64W7EHZ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = StudentFullCare/Info.plist;
+				INFOPLIST_FILE = KidsFullCare/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "엄마의 마음";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -394,7 +382,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.najak.StudentFullCare;
+				PRODUCT_BUNDLE_IDENTIFIER = com.najak.KidsFullCare;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "애기돌봄_20260724";
@@ -417,7 +405,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = StudentFullCare/StudentFullCare.entitlements;
+				CODE_SIGN_ENTITLEMENTS = KidsFullCare/KidsFullCare.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
@@ -425,7 +413,7 @@
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 9KH64W7EHZ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = StudentFullCare/Info.plist;
+				INFOPLIST_FILE = KidsFullCare/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "엄마의 마음";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -437,7 +425,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.najak.StudentFullCare;
+				PRODUCT_BUNDLE_IDENTIFIER = com.najak.KidsFullCare;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "애기돌봄_20260724";
@@ -458,7 +446,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		89BCBB12300A97DD00FC304B /* Build configuration list for PBXProject "StudentFullCare" */ = {
+		89BCBB12300A97DD00FC304B /* Build configuration list for PBXProject "KidsFullCare" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				89BCBB20300A97DE00FC304B /* Debug */,
@@ -467,7 +455,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		89BCBB22300A97DE00FC304B /* Build configuration list for PBXNativeTarget "StudentFullCare" */ = {
+		89BCBB22300A97DE00FC304B /* Build configuration list for PBXNativeTarget "KidsFullCare" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				89BCBB23300A97DE00FC304B /* Debug */,
