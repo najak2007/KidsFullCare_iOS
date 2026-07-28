@@ -1,6 +1,6 @@
 //
 //  LoginView.swift
-//  StudentFullCare
+//  KidsFullCare
 //
 //  Created by najak on 7/20/26.
 //

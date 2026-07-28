@@ -1,14 +1,15 @@
 //
-//  StudentFullCareApp.swift
-//  StudentFullCare
+//  KidsFullCareApp.swift
+//  KidsFullCare
 //
 //  Created by najak on 7/18/26.
 //
 
 import SwiftUI
+import FirebaseAuth
 
 @main
-struct StudentFullCareApp: App {
+struct KidsFullCareApp: App {
     
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     

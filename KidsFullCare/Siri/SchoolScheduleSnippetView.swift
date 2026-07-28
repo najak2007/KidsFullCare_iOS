@@ -1,6 +1,6 @@
 //
 //  SchoolScheduleSnippetView.swift
-//  StudentFullCare
+//  KidsFullCare
 //
 //  Created by najak on 7/18/26.
 //

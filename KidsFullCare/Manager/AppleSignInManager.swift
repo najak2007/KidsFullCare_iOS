@@ -1,6 +1,6 @@
 //
 //  AppleSignInManager.swift
-//  StudentFullCare
+//  KidsFullCare
 //
 //  Created by 오션블루 on 7/21/26.
 //
