@@ -182,6 +182,14 @@ struct SignUpView: UIViewRepresentable {
                 self?.userViewModel.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
             }
         }
+        
+        private func sendCancelCallBack() {
+            let jsScript = "window.onNativeSignInError && window.onNativeSignInCancel();"
+
+            DispatchQueue.main.async { [weak self] in
+                self?.userViewModel.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
+            }
+        }
     }
 }
 
@@ -224,6 +232,10 @@ extension SignUpView.Coordinator: ASAuthorizationControllerDelegate, ASAuthoriza
         let name = PersonNameComponentsFormatter().string(from: appleCredential.fullName ?? PersonNameComponents())
         let email = appleCredential.email
 
+#if DEBUG
+        print("name = \(name), email = \(email ?? ""), tokenString = \(tokenString)")
+#endif
+        
         sendSuccessCallBack(
             identityToken: tokenString,
             rawNonce: nonce,
@@ -243,6 +255,7 @@ extension SignUpView.Coordinator: ASAuthorizationControllerDelegate, ASAuthoriza
 
         // 사용자가 그냥 취소한 경우는 굳이 에러 메시지를 띄우지 않습니다.
         if let authError = error as? ASAuthorizationError, authError.code == .canceled {
+            sendCancelCallBack()
             return
         }
 
