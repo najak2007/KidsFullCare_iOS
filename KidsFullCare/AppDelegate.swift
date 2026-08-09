@@ -10,6 +10,7 @@ import Firebase
 import FirebaseMessaging
 import UserNotifications
 import FirebaseAppCheck
+import SwiftUI
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
@@ -30,8 +31,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             AppCheck.setAppCheckProviderFactory(providerFactory)
         }
 #endif
-        
-        FirebaseApp.configure()
 
         Messaging.messaging().delegate = NotificationManager.shared
         
