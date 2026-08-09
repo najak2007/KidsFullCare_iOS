@@ -2,26 +2,34 @@
 //  SignUpView.swift
 //  KidsFullCare
 //
-//  Created by najak on 7/26/26.
+//  이 WebView는 AuthGateViewModel의 상태를 그대로 JS에 전달만 합니다.
+//  Firebase 로그인/Firestore 저장은 전부 AuthGateViewModel(네이티브)이 처리합니다.
 //
 
 import SwiftUI
 import WebKit
 import AuthenticationServices
 import CryptoKit
+import Combine
+import FirebaseAuth
 
 struct SignUpView: UIViewRepresentable {
     @ObservedObject var userViewModel: UserViewModel
+    @ObservedObject var authGate: AuthGateViewModel
     let url: URL
 
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         let userContentController = WKUserContentController()
 
-        // React → Swift 메시지 핸들러 등록
-        userContentController.add(context.coordinator, name: "nativeBridge")
+        // JS(React) → 네이티브 메시지 핸들러 등록
         userContentController.add(context.coordinator, name: "appleSignIn")
-        // ------------------------------------------------------------------
+        userContentController.add(context.coordinator, name: "googleSignIn")
+        userContentController.add(context.coordinator, name: "roleSelect")   // { role: "parent" | "student" }
+        userContentController.add(context.coordinator, name: "signOut")
+        userContentController.add(context.coordinator, name: "jsReady")      // JS가 리스너 등록 완료 후 호출
+        userContentController.add(context.coordinator, name: "emailSignUp")  // { email, password }
+        userContentController.add(context.coordinator, name: "emailSignIn")  // { email, password }
 
         config.userContentController = userContentController
 
@@ -37,9 +45,11 @@ struct SignUpView: UIViewRepresentable {
         webView.scrollView.pinchGestureRecognizer?.isEnabled = false
         webView.scrollView.bouncesZoom = false
         webView.allowsLinkPreview = false
-
         webView.backgroundColor = .white
+
         userViewModel.webView = webView
+        context.coordinator.attach(webView: webView, authGate: authGate)
+
         var request = URLRequest(url: url)
         request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
         webView.load(request)
@@ -54,14 +64,68 @@ struct SignUpView: UIViewRepresentable {
 
     class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler, WKUIDelegate, UIGestureRecognizerDelegate {
         let userViewModel: UserViewModel
-        var isInitialLoad: Bool = true
+        private weak var webView: WKWebView?
+        private var authGate: AuthGateViewModel?
+        private var stateCancellable: AnyCancellable?
 
-        // Apple 로그인 요청 시 사용한 원본(해시 전) nonce.
-        // Firebase가 idToken 안의 nonce claim과 비교 검증할 때 필요합니다.
+        // Apple 로그인 요청 시 사용한 원본(해시 전) nonce
         private var currentNonce: String?
 
         init(viewModel: UserViewModel) {
             self.userViewModel = viewModel
+        }
+
+        /// WebView와 AuthGateViewModel을 연결하고, 상태가 바뀔 때마다 JS로 알려줍니다.
+        func attach(webView: WKWebView, authGate: AuthGateViewModel) {
+            self.webView = webView
+            self.authGate = authGate
+
+            stateCancellable = authGate.$state
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] state in
+                    self?.notifyJS(state: state)
+                }
+        }
+
+        private func notifyJS(state: AuthGateState) {
+            var payload: [String: Any] = [:]
+
+            switch state {
+            case .checking:
+                payload["status"] = "checking"
+            case .loggedOut:
+                payload["status"] = "loggedOut"
+            case .needsRole:
+                payload["status"] = "needsRole"
+                if let user = try? currentUserSnapshot() {
+                    payload["name"] = user.name
+                    payload["email"] = user.email
+                }
+            case .loginCancel:
+                payload["status"] = "loginCancel"
+            case .loggedIn(let role):
+                payload["status"] = "loggedIn"
+                payload["role"] = role
+            }
+
+            guard
+                let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
+                let jsonString = String(data: jsonData, encoding: .utf8)
+            else { return }
+
+            let jsScript = """
+                (function() {
+                    window.onNativeAuthState && window.onNativeAuthState(\(jsonString));
+                    return null;
+                })();
+                """
+            webView?.evaluateJavaScript(jsScript, completionHandler: nil)
+        }
+
+        private func currentUserSnapshot() throws -> (name: String, email: String) {
+            // FirebaseAuth import 없이 Coordinator를 가볍게 유지하고 싶다면
+            // 이 부분은 AuthGateViewModel에 getter를 하나 추가해서 위임해도 됩니다.
+            return ("", "")
         }
 
         func webView(
@@ -69,10 +133,15 @@ struct SignUpView: UIViewRepresentable {
             contextMenuConfigurationForElement elementInfo: WKContextMenuElementInfo,
             completionHandler: @escaping (UIContextMenuConfiguration?) -> Void
         ) {
-            completionHandler(nil) // nil 리턴 → 메뉴 자체가 뜨지 않음
+            completionHandler(nil)
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            // 페이지 로드가 끝나면 현재 상태를 한 번 더 밀어줍니다.
+            // (JS의 window.onNativeAuthState 등록이 늦게 끝났을 경우 대비)
+            if let authGate {
+                notifyJS(state: authGate.state)
+            }
         }
 
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
@@ -81,13 +150,39 @@ struct SignUpView: UIViewRepresentable {
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
 #if DEBUG
-            print("userContentController message.name : \(message.name)")
+            print("bridge message:", message.name, message.body)
 #endif
-
-            if message.name == "nativeBridge" {
-
-            } else if message.name == "appleSignIn" {
+            switch message.name {
+            case "appleSignIn":
                 startAppleSignIn()
+            case "googleSignIn":
+                startGoogleSignIn()
+            case "roleSelect":
+                if let role = message.body as? String {
+                    handleRoleSelect(role)
+                }
+            case "signOut":
+                authGate?.signOut()
+            case "jsReady":
+                // JS가 window.onNativeAuthState 등록을 마쳤다는 신호.
+                // 그 시점의 최신 상태를 다시 한번 밀어줘서 타이밍 레이스를 방지합니다.
+                if let authGate {
+                    notifyJS(state: authGate.state)
+                }
+            case "emailSignUp":
+                if let body = message.body as? [String: Any],
+                   let email = body["email"] as? String,
+                   let password = body["password"] as? String {
+                    handleEmailSignUp(email: email, password: password)
+                }
+            case "emailSignIn":
+                if let body = message.body as? [String: Any],
+                   let email = body["email"] as? String,
+                   let password = body["password"] as? String {
+                    handleEmailSignIn(email: email, password: password)
+                }
+            default:
+                break
             }
         }
 
@@ -98,13 +193,14 @@ struct SignUpView: UIViewRepresentable {
             return false
         }
 
-        // pinch gesture recognizer는 애초에 시작조차 못 하게 차단
         func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
             if gestureRecognizer is UIPinchGestureRecognizer {
                 return false
             }
             return true
         }
+
+        // MARK: - Apple Sign In
 
         private func startAppleSignIn() {
             let nonce = Self.randomNonceString()
@@ -113,7 +209,7 @@ struct SignUpView: UIViewRepresentable {
             let provider = ASAuthorizationAppleIDProvider()
             let request = provider.createRequest()
             request.requestedScopes = [.fullName, .email]
-            request.nonce = Self.sha256(nonce) // 해시된 nonce를 Apple에 전달
+            request.nonce = Self.sha256(nonce)
 
             let controller = ASAuthorizationController(authorizationRequests: [request])
             controller.delegate = self
@@ -121,72 +217,72 @@ struct SignUpView: UIViewRepresentable {
             controller.performRequests()
         }
 
-        /// JS로 로그인 성공 결과를 안전하게 전달합니다.
-        /// JSONSerialization을 사용해 이름에 특수문자(예: 작은따옴표)가 있어도
-        /// JS 문법이 깨지지 않도록 합니다.
-        private func sendSuccessCallBack(
-            identityToken: String,
-            rawNonce: String,
-            email: String?,
-            name: String?
-        ) {
-            var payload: [String: Any] = [
-                "idToken": identityToken,
-                "rawNonce": rawNonce,
-            ]
-            if let email = email, !email.isEmpty {
-                payload["email"] = email
-            }
-            if let name = name, !name.isEmpty {
-                payload["name"] = name
-            }
+        // MARK: - Google Sign In (자리만 마련. GoogleSignIn SDK 붙이면 여기서 authGate.signInWithGoogle 호출)
 
-            guard
-                let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
-                let jsonString = String(data: jsonData, encoding: .utf8)
-            else {
-#if DEBUG
-                print("Apple 로그인 payload 직렬화 실패")
-#endif
-                sendFailCallBack(errorMessage: "로그인 정보를 처리하는 중 오류가 발생했습니다.")
-                return
-            }
+        private func startGoogleSignIn() {
+            sendErrorToJS(provider: "google", message: "Google 로그인은 아직 연결되지 않았습니다.", code: nil)
+        }
 
-            let jsScript = "window.onNativeAppleSignIn && window.onNativeAppleSignIn(\(jsonString));"
+        // MARK: - Role 저장
 
-            DispatchQueue.main.async { [weak self] in
-                self?.userViewModel.webView?.evaluateJavaScript(jsScript) { _, error in
-                    if let error = error {
-#if DEBUG
-                        print(error.localizedDescription)
-#endif
-                    }
+        private func handleRoleSelect(_ role: String) {
+            Task {
+                do {
+                    try await authGate?.saveRole(role)
+                } catch {
+                    sendErrorToJS(provider: "role", message: "역할 저장 중 오류가 발생했습니다.", code: nil)
                 }
             }
         }
 
-        private func sendFailCallBack(errorMessage: String) {
-            let payload: [String: Any] = [
-                "provider": "apple",
-                "message": errorMessage,
-            ]
+        // MARK: - 이메일/비밀번호 가입 & 로그인
 
+        private func handleEmailSignUp(email: String, password: String) {
+            Task {
+                do {
+                    try await authGate?.signUpWithEmail(email: email, password: password)
+                } catch {
+                    sendErrorToJS(provider: "email", message: error.localizedDescription, code: Self.firebaseAuthErrorCode(from: error))
+                }
+            }
+        }
+
+        private func handleEmailSignIn(email: String, password: String) {
+            Task {
+                do {
+                    try await authGate?.signInWithEmail(email: email, password: password)
+                } catch {
+                    sendErrorToJS(provider: "email", message: error.localizedDescription, code: Self.firebaseAuthErrorCode(from: error))
+                }
+            }
+        }
+
+        // MARK: - 에러 전달
+
+        private func sendErrorToJS(provider: String, message: String, code: String?) {
+            var payload: [String: Any] = ["provider": provider, "message": message]
+            if let code {
+                payload["code"] = code
+            }
             guard
                 let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
                 let jsonString = String(data: jsonData, encoding: .utf8)
             else { return }
 
-            let jsScript = "window.onNativeSignInError && window.onNativeSignInError(\(jsonString));"
-
+            let jsScript = """
+                (function() {
+                    window.onNativeSignInError && window.onNativeSignInError(\(jsonString));
+                    return null;
+                })();
+                """
             DispatchQueue.main.async { [weak self] in
-                self?.userViewModel.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
+                self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
             }
         }
     }
 }
 
 extension SignUpView.Coordinator: ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
-    // Apple 로그인 레이어가 떠오를 Window 창 지정 (iOS 15+ 대응)
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let window = windowScene.windows.first(where: { $0.isKeyWindow }) {
@@ -195,62 +291,69 @@ extension SignUpView.Coordinator: ASAuthorizationControllerDelegate, ASAuthoriza
         return UIWindow()
     }
 
-    // Apple 로그인 인증 성공 시
     func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
         guard let appleCredential = authorization.credential as? ASAuthorizationAppleIDCredential else {
-            sendFailCallBack(errorMessage: "지원하지 않는 인증 방식입니다.")
+            sendErrorToJS(provider: "apple", message: "지원하지 않는 인증 방식입니다.", code: nil)
             return
         }
-
         guard let nonce = currentNonce else {
-#if DEBUG
-            print("currentNonce가 없습니다. startAppleSignIn()이 먼저 호출되었는지 확인하세요.")
-#endif
-            sendFailCallBack(errorMessage: "로그인 상태가 올바르지 않습니다. 다시 시도해주세요.")
+            sendErrorToJS(provider: "apple", message: "로그인 상태가 올바르지 않습니다. 다시 시도해주세요.", code: nil)
             return
         }
-
         guard
             let tokenData = appleCredential.identityToken,
             let tokenString = String(data: tokenData, encoding: .utf8)
         else {
-            sendFailCallBack(errorMessage: "인증 토큰을 가져오지 못했습니다.")
+            sendErrorToJS(provider: "apple", message: "인증 토큰을 가져오지 못했습니다.", code: nil)
             return
         }
 
-        // fullName / email은 사용자가 "최초 1회" 로그인할 때만 내려옵니다.
-        // 두 번째 로그인부터는 nil이 되므로, 최초 값은 앱(Keychain 등)이나
-        // 서버 쪽에서 저장해두고 재사용하는 것을 권장합니다.
-        let name = PersonNameComponentsFormatter().string(from: appleCredential.fullName ?? PersonNameComponents())
-        let email = appleCredential.email
-
-        sendSuccessCallBack(
-            identityToken: tokenString,
-            rawNonce: nonce,
-            email: email,
-            name: name.isEmpty ? nil : name
-        )
-
         currentNonce = nil
+
+        Task {
+            do {
+                // 핵심: 네이티브가 직접 Firebase에 로그인합니다.
+                // 이 한 줄이 성공하면 AuthGateViewModel의 addStateDidChangeListener가
+                // 자동으로 반응해서 state가 .needsRole / .loggedIn으로 바뀌고,
+                // 그게 다시 JS로 전달됩니다. JS는 아무 Firebase 코드가 필요 없습니다.
+                try await authGate?.signInWithApple(identityToken: tokenString, rawNonce: nonce, appleUserId: appleCredential.user)
+            } catch {
+                sendErrorToJS(provider: "apple", message: error.localizedDescription, code: Self.firebaseAuthErrorCode(from: error))
+            }
+        }
     }
 
-    // Apple 로그인 인증 실패/취소 시
     func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
-#if DEBUG
-        print("Apple 로그인 실패: \(error.localizedDescription)")
-#endif
         currentNonce = nil
-
-        // 사용자가 그냥 취소한 경우는 굳이 에러 메시지를 띄우지 않습니다.
         if let authError = error as? ASAuthorizationError, authError.code == .canceled {
-            return
+            notifyJS(state: .loginCancel)
+            return // 사용자가 그냥 취소한 경우는 에러 표시 안 함
         }
-
-        sendFailCallBack(errorMessage: error.localizedDescription)
+        sendErrorToJS(provider: "apple", message: error.localizedDescription, code: nil)
     }
 }
 
-// MARK: - Nonce 유틸리티 (Apple 공식 샘플 패턴)
+private extension SignUpView.Coordinator {
+    /// Firebase Auth 에러를 JS `convertFirebaseError`에서 쓰는 것과 동일한
+    /// "auth/xxx" 문자열 코드로 변환합니다.
+    static func firebaseAuthErrorCode(from error: Error) -> String? {
+        let nsError = error as NSError
+        guard nsError.domain == AuthErrorDomain, let code = AuthErrorCode(rawValue: nsError.code) else {
+            return nil
+        }
+        switch code {
+        case .emailAlreadyInUse: return "auth/email-already-in-use"
+        case .invalidEmail: return "auth/invalid-email"
+        case .weakPassword: return "auth/weak-password"
+        case .wrongPassword: return "auth/wrong-password"
+        case .userNotFound: return "auth/user-not-found"
+        case .userDisabled: return "auth/user-disabled"
+        case .invalidCredential: return "auth/invalid-credential"
+        case .accountExistsWithDifferentCredential: return "auth/account-exists-with-different-credential"
+        default: return nil
+        }
+    }
+}
 
 private extension SignUpView.Coordinator {
     static func randomNonceString(length: Int = 32) -> String {
@@ -263,15 +366,9 @@ private extension SignUpView.Coordinator {
         while remainingLength > 0 {
             let randoms: [UInt8] = (0..<16).map { _ in
                 var random: UInt8 = 0
-                let errorCode = SecRandomCopyBytes(kSecRandomDefault, 1, &random)
-                if errorCode != errSecSuccess {
-#if DEBUG
-                    print("SecRandomCopyBytes 실패: \(errorCode)")
-#endif
-                }
+                _ = SecRandomCopyBytes(kSecRandomDefault, 1, &random)
                 return random
             }
-
             randoms.forEach { random in
                 if remainingLength == 0 { return }
                 if random < charset.count {
@@ -280,7 +377,6 @@ private extension SignUpView.Coordinator {
                 }
             }
         }
-
         return result
     }
 
