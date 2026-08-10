@@ -106,6 +106,8 @@ struct SignUpView: UIViewRepresentable {
             case .loggedIn(let role):
                 payload["status"] = "loggedIn"
                 payload["role"] = role
+            case .signUp:
+                payload["status"] = "signUp"
             }
 
             guard
