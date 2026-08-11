@@ -80,7 +80,9 @@ final class AuthGateViewModel: ObservableObject {
     }
     
     func checkAppleSignInStatus(completion: ((AppleAuthState) -> Void)? = nil) {
-        guard let userID = DeviceIdentifier.shared.getUserID() else {
+        guard let userInfo = DeviceIdentifier.shared.getUserID(),
+            let userID = userInfo["user"] as? String
+        else {
             DispatchQueue.main.async {
                 self.isAuthenticated = .authInit
                 completion?(.authInit)
@@ -125,7 +127,7 @@ final class AuthGateViewModel: ObservableObject {
     /// Apple 로그인 성공 후 identityToken + rawNonce로 Firebase에 직접 로그인합니다.
     /// 성공하면 addStateDidChangeListener가 자동으로 다시 트리거되어
     /// state가 .needsRole 또는 .loggedIn으로 바뀝니다.
-    func signInWithApple(identityToken: String, rawNonce: String, appleUserId: String) async throws {
+    func signInWithApple(identityToken: String, rawNonce: String, appleCredential: ASAuthorizationAppleIDCredential) async throws {
         let credential = OAuthProvider.credential(
             providerID: AuthProviderID.apple,
             idToken: identityToken,
@@ -133,12 +135,12 @@ final class AuthGateViewModel: ObservableObject {
         )
         let result = try await Auth.auth().signIn(with: credential)
         
-        DeviceIdentifier.shared.setUserID(appleUserId)
+        DeviceIdentifier.shared.setUserID(appleCredential)
         DeviceIdentifier.shared.setFirebaseUID(result.user.uid)
         
         try await db.collection("users").document(result.user.uid).setData([
             "uid": result.user.uid,
-            "appleUserId": appleUserId,
+            "appleUserId": appleCredential.user,
             "uuid": DeviceIdentifier.shared.getDeviceUUID(),
             "email": result.user.email ?? "",
             "name": result.user.displayName ?? "",

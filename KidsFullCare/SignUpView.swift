@@ -318,7 +318,7 @@ extension SignUpView.Coordinator: ASAuthorizationControllerDelegate, ASAuthoriza
                 // 이 한 줄이 성공하면 AuthGateViewModel의 addStateDidChangeListener가
                 // 자동으로 반응해서 state가 .needsRole / .loggedIn으로 바뀌고,
                 // 그게 다시 JS로 전달됩니다. JS는 아무 Firebase 코드가 필요 없습니다.
-                try await authGate?.signInWithApple(identityToken: tokenString, rawNonce: nonce, appleUserId: appleCredential.user)
+                try await authGate?.signInWithApple(identityToken: tokenString, rawNonce: nonce, appleCredential: appleCredential)
             } catch {
                 sendErrorToJS(provider: "apple", message: error.localizedDescription, code: Self.firebaseAuthErrorCode(from: error))
             }

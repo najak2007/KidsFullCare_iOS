@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import AuthenticationServices
 
 class DeviceIdentifier {
     static let shared = DeviceIdentifier()
@@ -26,12 +27,40 @@ class DeviceIdentifier {
         return newUUID
     }
     
-    func setUserID(_ userID: String) {
-        KeychainHelper.shared.save(userID, account: keychainUserID)
+    func setUserID(_ appleCredential: ASAuthorizationAppleIDCredential) {
+        guard let existingInfoStr = KeychainHelper.shared.read(account: keychainUserID)
+        else {
+            
+            let userDict: [String: Any] = [
+                "user": appleCredential.user,
+                "name" : appleCredential.fullName ?? "",
+                "email" : appleCredential.email ?? "",
+                "ageRange" : appleCredential.userAgeRange.rawValue
+            ]
+            
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: userDict, options: .prettyPrinted),
+                  let jsonString = String(data: jsonData, encoding: .utf8)
+            else {
+                return
+            }
+            KeychainHelper.shared.save(jsonString, account: keychainUserID)
+            return
+        }
     }
     
-    func getUserID() -> String? {
-        return KeychainHelper.shared.read(account: keychainUserID)
+    func getUserID() -> [String: Any]? {
+        guard let existingInfoStr = KeychainHelper.shared.read(account: keychainUserID)
+        else {
+            return nil
+        }
+
+        guard let jsonData = existingInfoStr.data(using: .utf8)
+        else {
+            return nil
+        }
+        
+        let userDict = try? JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
+        return userDict
     }
     
     func getFirebaseUID() -> String? {
