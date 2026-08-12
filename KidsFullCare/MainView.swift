@@ -8,11 +8,15 @@
 import SwiftUI
 
 struct MainView: View {
-    
+    @ObservedObject var userViewModel: UserViewModel
+    @ObservedObject var authGate: AuthGateViewModel
     @State private var tabIndex: Int = 0
     
     var body: some View {
         ZStack {
+            Color("1F2020")
+                .ignoresSafeArea()
+            
             TabView(selection: $tabIndex) {
                 Tab("홈", systemImage: "house", value: 0) {
                     
@@ -27,5 +31,6 @@ struct MainView: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
