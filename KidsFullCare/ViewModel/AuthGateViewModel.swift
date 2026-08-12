@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import AuthenticationServices
 import FirebaseAuth
 import FirebaseFirestore
 import Combine
@@ -16,13 +17,23 @@ enum AuthGateState: Equatable {
     case loggedOut                 // 로그인 안 됨 → Sign in with Apple 화면
     case needsRole                 // 로그인은 됐지만 역할(role) 미선택 → 역할 선택 화면
     case loginCancel
+    case signUp
     case loggedIn(role: String)    // 로그인 + 역할 선택까지 완료 → 메인 화면
+}
+
+enum AppleAuthState: Equatable {
+    case authInit                       // 초기값
+    case authorized                     // Apple ID 인증 성공(로그인 상태)
+    case revoked                        // Apple ID 인증이 취소됨 (사용자가 설정에서 인증 해제 등...
+    case notFound                       // Apple ID 자격 증명을 찾을 수 없음
+    case unKnown                        // 알수 없는 상태 또는 오류 발생
 }
 
 @MainActor
 final class AuthGateViewModel: ObservableObject {
     @Published private(set) var state: AuthGateState = .checking
-
+    @Published var isAuthenticated: AppleAuthState = .authInit
+    
     private var authListenerHandle: AuthStateDidChangeListenerHandle?
     private let db = Firestore.firestore()
 
@@ -30,7 +41,9 @@ final class AuthGateViewModel: ObservableObject {
         // 이게 이 아키텍처의 핵심입니다.
         // 앱이 켜질 때, 그리고 로그인/로그아웃이 일어날 때마다 자동으로 호출됩니다.
         authListenerHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
-            Task { await self?.handleAuthChange(user: user) }
+            Task {
+                await self?.handleAuthChange(user: user)
+            }
         }
     }
 
@@ -42,7 +55,13 @@ final class AuthGateViewModel: ObservableObject {
 
     private func handleAuthChange(user: FirebaseAuth.User?) async {
         guard let user else {
-            state = .loggedOut
+            checkAppleSignInStatus { appleAuthState in
+                if appleAuthState == .authorized {
+                    self.state = .loggedOut
+                } else {
+                    self.state = .signUp
+                }
+            }
             return
         }
 
@@ -61,27 +80,73 @@ final class AuthGateViewModel: ObservableObject {
             state = .needsRole
         }
     }
+    
+    func checkAppleSignInStatus(completion: ((AppleAuthState) -> Void)? = nil) {
+        guard let userInfo = DeviceIdentifier.shared.getUserID(),
+            let userID = userInfo["user"] as? String
+        else {
+            DispatchQueue.main.async {
+                self.isAuthenticated = .authInit
+                completion?(.authInit)
+            }
+            return
+        }
+        
+        let appleIDProvider = ASAuthorizationAppleIDProvider()
+        appleIDProvider.getCredentialState(forUserID: userID) { [weak self] (credentialState, error) in
+            DispatchQueue.main.async {
+                switch credentialState {
+                case .authorized:
+#if DEBUG
+                    print("Apple ID 인증 성공(로그인 상태)")
+#endif
+                    self?.isAuthenticated = .authorized
+                    completion?(.authorized)
+                case .revoked:
+#if DEBUG
+                    print("Apple ID 인증이 취소됨 (사용자가 설정에서 인증 해제 등...)")
+#endif
+                    self?.isAuthenticated = .revoked
+                    completion?(.revoked)
+                case .notFound:
+#if DEBUG
+                    print("Apple ID 자격 증명을 찾을 수 없음")
+#endif
+                    self?.isAuthenticated = .notFound
+                    completion?(.notFound)
+                default:
+#if DEBUG
+                    print("알 수 없는 상태 또는 오류 발생: \(String(describing: error))")
+#endif
+                    self?.isAuthenticated = .unKnown
+                    completion?(.unKnown)
+                }
+            }
+        }
+    }
+    
 
     /// Apple 로그인 성공 후 identityToken + rawNonce로 Firebase에 직접 로그인합니다.
     /// 성공하면 addStateDidChangeListener가 자동으로 다시 트리거되어
     /// state가 .needsRole 또는 .loggedIn으로 바뀝니다.
-    func signInWithApple(identityToken: String, rawNonce: String, appleUserId: String) async throws {
+    func signInWithApple(identityToken: String, rawNonce: String, appleCredential: ASAuthorizationAppleIDCredential) async throws {
         let credential = OAuthProvider.credential(
             providerID: AuthProviderID.apple,
             idToken: identityToken,
             rawNonce: rawNonce
         )
+        
+        // Firebase 로그인 (최초 접속 시 자동 회원가입)
         let result = try await Auth.auth().signIn(with: credential)
         
-        DeviceIdentifier.shared.setUserID(appleUserId)
-        DeviceIdentifier.shared.setFirebaseUID(result.user.uid)
+        let name = DeviceIdentifier.shared.setUserID(appleCredential, result.user.uid)
         
         try await db.collection("users").document(result.user.uid).setData([
             "uid": result.user.uid,
-            "appleUserId": appleUserId,
+            "appleUserId": appleCredential.user,
             "uuid": DeviceIdentifier.shared.getDeviceUUID(),
             "email": result.user.email ?? "",
-            "name": result.user.displayName ?? "",
+            "name": result.user.displayName ?? name,
             "provider": "apple.com",
             "updatedAt": FieldValue.serverTimestamp(),
         ], merge: true)

@@ -13,17 +13,14 @@ import Firebase
 struct KidsFullCareApp: App {
     
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
-    @State private var authManager: AuthManager
     
     init() {
         FirebaseApp.configure()
-        _authManager = State(wrappedValue: AuthManager())
     }
     
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environment(authManager)
         }
     }
 }
