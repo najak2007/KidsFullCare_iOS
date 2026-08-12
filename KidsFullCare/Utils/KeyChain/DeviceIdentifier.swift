@@ -14,7 +14,6 @@ class DeviceIdentifier {
     
     private let keychainAccount = "deviceUUID"
     private let keychainUserID = "userID"
-    private let keychainUID = "firebaseUID"
     
     // 기기 고유 UUID 가져오기 (없으면 새로 생성 후 저장)
     func getDeviceUUID() -> String {
@@ -27,25 +26,32 @@ class DeviceIdentifier {
         return newUUID
     }
     
-    func setUserID(_ appleCredential: ASAuthorizationAppleIDCredential) {
-        guard let existingInfoStr = KeychainHelper.shared.read(account: keychainUserID)
+    func setUserID(_ appleCredential: ASAuthorizationAppleIDCredential, _ firebaseUID: String = "") -> String {
+        guard let _ = KeychainHelper.shared.read(account: keychainUserID)
         else {
-            
+            var name: String = ""
+            if let fullName = appleCredential.fullName {
+                let formatter = PersonNameComponentsFormatter()
+                formatter.style = .default
+                name = formatter.string(from: fullName)
+            }
             let userDict: [String: Any] = [
                 "user": appleCredential.user,
-                "name" : appleCredential.fullName ?? "",
+                "name" : name,
                 "email" : appleCredential.email ?? "",
-                "ageRange" : appleCredential.userAgeRange.rawValue
+                "ageRange" : appleCredential.userAgeRange.rawValue,
+                "firebaseUID" : firebaseUID
             ]
             
             guard let jsonData = try? JSONSerialization.data(withJSONObject: userDict, options: .prettyPrinted),
                   let jsonString = String(data: jsonData, encoding: .utf8)
             else {
-                return
+                return name
             }
             KeychainHelper.shared.save(jsonString, account: keychainUserID)
-            return
+            return name
         }
+        return ""
     }
     
     func getUserID() -> [String: Any]? {
@@ -61,13 +67,5 @@ class DeviceIdentifier {
         
         let userDict = try? JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
         return userDict
-    }
-    
-    func getFirebaseUID() -> String? {
-        return KeychainHelper.shared.read(account: keychainUID)
-    }
-    
-    func setFirebaseUID(_ uid: String) {
-        KeychainHelper.shared.save(uid, account: keychainUID)
     }
 }

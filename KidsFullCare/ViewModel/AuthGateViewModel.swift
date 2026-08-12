@@ -41,7 +41,9 @@ final class AuthGateViewModel: ObservableObject {
         // 이게 이 아키텍처의 핵심입니다.
         // 앱이 켜질 때, 그리고 로그인/로그아웃이 일어날 때마다 자동으로 호출됩니다.
         authListenerHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
-            Task { await self?.handleAuthChange(user: user) }
+            Task {
+                await self?.handleAuthChange(user: user)
+            }
         }
     }
 
@@ -133,17 +135,18 @@ final class AuthGateViewModel: ObservableObject {
             idToken: identityToken,
             rawNonce: rawNonce
         )
+        
+        // Firebase 로그인 (최초 접속 시 자동 회원가입)
         let result = try await Auth.auth().signIn(with: credential)
         
-        DeviceIdentifier.shared.setUserID(appleCredential)
-        DeviceIdentifier.shared.setFirebaseUID(result.user.uid)
+        let name = DeviceIdentifier.shared.setUserID(appleCredential, result.user.uid)
         
         try await db.collection("users").document(result.user.uid).setData([
             "uid": result.user.uid,
             "appleUserId": appleCredential.user,
             "uuid": DeviceIdentifier.shared.getDeviceUUID(),
             "email": result.user.email ?? "",
-            "name": result.user.displayName ?? "",
+            "name": result.user.displayName ?? name,
             "provider": "apple.com",
             "updatedAt": FieldValue.serverTimestamp(),
         ], merge: true)

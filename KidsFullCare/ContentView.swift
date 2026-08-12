@@ -10,16 +10,25 @@ import FirebaseAuth
 import AuthenticationServices
 
 struct ContentView: View {
-    @Environment(AuthManager.self) private var authManager
     @StateObject private var userViewModel = UserViewModel()
     @StateObject private var authGateViewModel = AuthGateViewModel()
-    @State private var userID: String = ""
+    
 
     init() {
-        userID = DeviceIdentifier.shared.getUserID() ?? ""
-        
-        if !userID.isEmpty {
-            ASAuthorizationAppleIDProvider().getCredentialState(forUserID: userID) { (state, error) in
+        guard let userInfo = DeviceIdentifier.shared.getUserID(),
+              let user = userInfo["user"] as? String
+        else {
+            do {
+                try Auth.auth().signOut()
+            } catch let signOutError as NSError {
+#if DEBUG
+                print("Error signing out: \(signOutError)")
+#endif
+            }
+            return
+        }
+        if !user.isEmpty {
+            ASAuthorizationAppleIDProvider().getCredentialState(forUserID: user) { (state, error) in
                 switch state {
                 case .authorized:
                     print("인증 유효")
@@ -27,7 +36,9 @@ struct ContentView: View {
                     do {
                         try Auth.auth().signOut()
                     } catch let signOutError as NSError {
+#if DEBUG
                         print("Error signing out: \(signOutError)")
+#endif
                     }
                 default: break
                 }
@@ -36,7 +47,9 @@ struct ContentView: View {
             do {
                 try Auth.auth().signOut()
             } catch let signOutError as NSError {
+#if DEBUG
                 print("Error signing out: \(signOutError)")
+#endif
             }
         }
     }
