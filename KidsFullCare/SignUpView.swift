@@ -45,7 +45,9 @@ struct SignUpView: UIViewRepresentable {
         webView.scrollView.pinchGestureRecognizer?.isEnabled = false
         webView.scrollView.bouncesZoom = false
         webView.allowsLinkPreview = false
-        webView.backgroundColor = .white
+        webView.backgroundColor = .systemBackground
+        webView.scrollView.backgroundColor = .systemBackground
+        webView.isOpaque = true
 
         userViewModel.webView = webView
         context.coordinator.attach(webView: webView, authGate: authGate)
@@ -93,14 +95,11 @@ struct SignUpView: UIViewRepresentable {
             switch state {
             case .checking:
                 payload["status"] = "checking"
-            case .loggedOut:
+            case .loggedOut(let returningUser):
                 payload["status"] = "loggedOut"
+                payload["returningUser"] = returningUser
             case .needsRole:
                 payload["status"] = "needsRole"
-                if let user = try? currentUserSnapshot() {
-                    payload["name"] = user.name
-                    payload["email"] = user.email
-                }
             case .loginCancel:
                 payload["status"] = "loginCancel"
             case .loggedIn(let role):
@@ -124,11 +123,6 @@ struct SignUpView: UIViewRepresentable {
             webView?.evaluateJavaScript(jsScript, completionHandler: nil)
         }
 
-        private func currentUserSnapshot() throws -> (name: String, email: String) {
-            // FirebaseAuth import 없이 Coordinator를 가볍게 유지하고 싶다면
-            // 이 부분은 AuthGateViewModel에 getter를 하나 추가해서 위임해도 됩니다.
-            return ("", "")
-        }
 
         func webView(
             _ webView: WKWebView,
@@ -160,8 +154,11 @@ struct SignUpView: UIViewRepresentable {
             case "googleSignIn":
                 startGoogleSignIn()
             case "roleSelect":
-                if let role = message.body as? String {
-                    handleRoleSelect(role)
+                if let body = message.body as? [String: Any], let role = body["role"] as? String {
+                    handleRoleSelect(role: role, extra: body)
+                } else if let role = message.body as? String {
+                    // 이전 방식(문자열만 전달) 호환용
+                    handleRoleSelect(role: role, extra: [:])
                 }
             case "signOut":
                 authGate?.signOut()
@@ -227,10 +224,10 @@ struct SignUpView: UIViewRepresentable {
 
         // MARK: - Role 저장
 
-        private func handleRoleSelect(_ role: String) {
+        private func handleRoleSelect(role: String, extra: [String: Any]) {
             Task {
                 do {
-                    try await authGate?.saveRole(role)
+                    try await authGate?.saveRole(role, extra: extra)
                 } catch {
                     sendErrorToJS(provider: "role", message: "역할 저장 중 오류가 발생했습니다.", code: nil)
                 }
