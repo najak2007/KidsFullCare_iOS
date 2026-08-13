@@ -14,7 +14,7 @@ import Combine
 
 enum AuthGateState: Equatable {
     case checking                  // 최초 로그인 상태 확인 중 (스플래시)
-    case loggedOut                 // 로그인 안 됨 → Sign in with Apple 화면
+    case loggedOut(returningUser: Bool)    // 로그인 안 됨. returningUser: 이 기기가 예전에 가입한 적 있는지
     case needsRole                 // 로그인은 됐지만 역할(role) 미선택 → 역할 선택 화면
     case loginCancel
     case signUp
@@ -38,6 +38,8 @@ final class AuthGateViewModel: ObservableObject {
     private let db = Firestore.firestore()
 
     init() {
+        KeychainHelper.shared.delete(account: "userID")
+
         // 이게 이 아키텍처의 핵심입니다.
         // 앱이 켜질 때, 그리고 로그인/로그아웃이 일어날 때마다 자동으로 호출됩니다.
         authListenerHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
@@ -56,10 +58,12 @@ final class AuthGateViewModel: ObservableObject {
     private func handleAuthChange(user: FirebaseAuth.User?) async {
         guard let user else {
             checkAppleSignInStatus { appleAuthState in
-                if appleAuthState == .authorized {
-                    self.state = .loggedOut
-                } else {
-                    self.state = .signUp
+                Task {
+                    if appleAuthState == .authorized {
+                        self.state = .loggedOut(returningUser: await self.checkIsReturningUser())
+                    } else {
+                        self.state = .signUp
+                    }
                 }
             }
             return
@@ -78,6 +82,25 @@ final class AuthGateViewModel: ObservableObject {
             // 네트워크 오류 등으로 조회 실패 시, 일단 역할 선택 화면으로 보내고
             // 화면에서 재시도하도록 둡니다. 필요하면 별도 .error 상태를 추가해도 됩니다.
             state = .needsRole
+        }
+    }
+    
+    /// Keychain에 저장된 마지막 로그인 uid가 실제로 Firestore에도 있는지 확인합니다.
+    /// true면 "이 기기가 예전에 가입을 완료한 적이 있다"는 뜻으로,
+    /// JS가 이메일/비밀번호 폼을 "로그인" 모드로 먼저 보여줄지 판단하는 데 씁니다.
+    private func checkIsReturningUser() async -> Bool {
+        guard let userInfo = DeviceIdentifier.shared.getUserID(),
+              let lastUid = userInfo["firebaseUID"] as? String
+        else {
+            return false
+        }
+        
+        do {
+            let snapshot = try await db.collection("users").document(lastUid).getDocument()
+            return snapshot.exists
+        } catch {
+            // 조회 실패 시 굳이 사용자에게 잘못된 확신을 주지 않도록 false로 처리합니다.
+            return false
         }
     }
     
@@ -129,6 +152,10 @@ final class AuthGateViewModel: ObservableObject {
     /// Apple 로그인 성공 후 identityToken + rawNonce로 Firebase에 직접 로그인합니다.
     /// 성공하면 addStateDidChangeListener가 자동으로 다시 트리거되어
     /// state가 .needsRole 또는 .loggedIn으로 바뀝니다.
+    ///
+    /// appleUserId는 authorizationController(didCompleteWithAuthorization:)에서 받은
+    /// appleCredential.user 값입니다. Keychain에 저장해두면, 다음에 앱을 실행했을 때
+    /// (로그아웃되어 있더라도) "이 기기가 예전에 가입한 적 있는지" 판단할 수 있습니다.
     func signInWithApple(identityToken: String, rawNonce: String, appleCredential: ASAuthorizationAppleIDCredential) async throws {
         let credential = OAuthProvider.credential(
             providerID: AuthProviderID.apple,
@@ -139,14 +166,14 @@ final class AuthGateViewModel: ObservableObject {
         // Firebase 로그인 (최초 접속 시 자동 회원가입)
         let result = try await Auth.auth().signIn(with: credential)
         
-        let name = DeviceIdentifier.shared.setUserID(appleCredential, result.user.uid)
+        let displayName = DeviceIdentifier.shared.setUserID(appleCredential, result.user.uid)
         
         try await db.collection("users").document(result.user.uid).setData([
             "uid": result.user.uid,
             "appleUserId": appleCredential.user,
             "uuid": DeviceIdentifier.shared.getDeviceUUID(),
             "email": result.user.email ?? "",
-            "name": result.user.displayName ?? name,
+            "displayName": result.user.displayName ?? displayName,
             "provider": "apple.com",
             "updatedAt": FieldValue.serverTimestamp(),
         ], merge: true)
@@ -164,23 +191,30 @@ final class AuthGateViewModel: ObservableObject {
     }
 
     /// 역할 선택 화면에서 사용자가 학부모/학생을 고르면 호출합니다.
-    func saveRole(_ role: String) async throws {
-        guard let user = Auth.auth().currentUser
-        else {
-                print("Error: Firebase Auth currentUser가 null입니다.")
-                throw NSError(domain: "AuthError", code: 401, userInfo: [NSLocalizedDescriptionKey: "로그인된 사용자가 없습니다."])
-        }
+    func saveRole(_ role: String, extra: [String: Any] = [:]) async throws {
+        guard let user = Auth.auth().currentUser else { return }
 
-        // merge: true 옵션 제거 (create 규칙 적용)
-        try await db.collection("users").document(user.uid).setData([
+        
+        let displayName = DeviceIdentifier.shared.getUserForKey("displayName") ?? ""
+        
+        var payload: [String: Any] = [
             "uid": user.uid,
             "role": role,
             "email": user.email ?? "",
-            "name": user.displayName ?? "",
+            "displayName": user.displayName ?? displayName,
             "provider": user.providerData.first?.providerID ?? "unknown",
             "createdAt": FieldValue.serverTimestamp(),
-        ])
+        ]
 
+        // uid/role/createdAt 등 예약 필드는 extra가 덮어쓰지 못하게 막습니다.
+        let reservedKeys: Set<String> = ["uid", "role", "createdAt"]
+        for (key, value) in extra where !reservedKeys.contains(key) {
+            payload[key] = value
+        }
+
+        try await db.collection("users").document(user.uid).setData(payload, merge: true)
+
+        // 다음 addStateDidChangeListener를 기다리지 않고 즉시 반영합니다.
         state = .loggedIn(role: role)
     }
 

@@ -29,15 +29,15 @@ class DeviceIdentifier {
     func setUserID(_ appleCredential: ASAuthorizationAppleIDCredential, _ firebaseUID: String = "") -> String {
         guard let _ = KeychainHelper.shared.read(account: keychainUserID)
         else {
-            var name: String = ""
+            var displayName: String = ""
             if let fullName = appleCredential.fullName {
                 let formatter = PersonNameComponentsFormatter()
                 formatter.style = .default
-                name = formatter.string(from: fullName)
+                displayName = formatter.string(from: fullName)
             }
             let userDict: [String: Any] = [
                 "user": appleCredential.user,
-                "name" : name,
+                "displayName" : displayName,
                 "email" : appleCredential.email ?? "",
                 "ageRange" : appleCredential.userAgeRange.rawValue,
                 "firebaseUID" : firebaseUID
@@ -46,10 +46,10 @@ class DeviceIdentifier {
             guard let jsonData = try? JSONSerialization.data(withJSONObject: userDict, options: .prettyPrinted),
                   let jsonString = String(data: jsonData, encoding: .utf8)
             else {
-                return name
+                return displayName
             }
             KeychainHelper.shared.save(jsonString, account: keychainUserID)
-            return name
+            return displayName
         }
         return ""
     }
@@ -67,5 +67,9 @@ class DeviceIdentifier {
         
         let userDict = try? JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
         return userDict
+    }
+    
+    func getUserForKey(_ key: String) -> String? {
+        return getUserID()?[key] as? String
     }
 }

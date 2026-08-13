@@ -14,7 +14,7 @@ struct MainView: View {
     
     var body: some View {
         ZStack {
-            Color("1F2020")
+            Color(.systemBackground)
                 .ignoresSafeArea()
             
             TabView(selection: $tabIndex) {

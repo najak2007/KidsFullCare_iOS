@@ -56,18 +56,19 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
-            Color("1F2020")
+            Color(.systemBackground)
                 .ignoresSafeArea()
 
             if authGateViewModel.state == .checking {
                 ProgressView("확인 중....")
+                    .background(Color(.systemBackground))
             } else if authGateViewModel.state == .loggedIn (role: "parent" ) {
                 MainView(userViewModel: userViewModel, authGate: authGateViewModel)
             } else if authGateViewModel.state == .loggedIn (role: "student" ) {
             } else {
                 if let url = URL(string: Config.KIDS_FULL_CARE_URL) {
                     SignUpView(userViewModel: userViewModel, authGate: authGateViewModel, url: url)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .ignoresSafeArea() // 안전 영역 무시하고 꽉 채우기
                 }
             }
         }
