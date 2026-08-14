@@ -13,12 +13,12 @@ import FirebaseFirestore
 import Combine
 
 enum AuthGateState: Equatable {
-    case checking                  // 최초 로그인 상태 확인 중 (스플래시)
-    case loggedOut(returningUser: Bool)    // 로그인 안 됨. returningUser: 이 기기가 예전에 가입한 적 있는지
-    case needsRole                 // 로그인은 됐지만 역할(role) 미선택 → 역할 선택 화면
+    case checking                                   // 최초 로그인 상태 확인 중 (스플래시)
+    case loggedOut(returningUser: Bool)             // 로그인 안 됨. returningUser: 이 기기가 예전에 가입한 적 있는지
+    case needsRole(name: String)                    // 로그인은 됐지만 역할(role) 미선택 → 역할 선택 화면
     case loginCancel
     case signUp
-    case loggedIn(role: String)    // 로그인 + 역할 선택까지 완료 → 메인 화면
+    case loggedIn(role: String)                     // 로그인 + 역할 선택까지 완료 → 메인 화면
 }
 
 enum AppleAuthState: Equatable {
@@ -38,7 +38,7 @@ final class AuthGateViewModel: ObservableObject {
     private let db = Firestore.firestore()
 
     init() {
-        KeychainHelper.shared.delete(account: "userID")
+//        KeychainHelper.shared.delete(account: "userID")
 
         // 이게 이 아키텍처의 핵심입니다.
         // 앱이 켜질 때, 그리고 로그인/로그아웃이 일어날 때마다 자동으로 호출됩니다.
@@ -69,19 +69,23 @@ final class AuthGateViewModel: ObservableObject {
             return
         }
 
+        var name: String = ""
+        
         do {
             let snapshot = try await db.collection("users").document(user.uid).getDocument()
-            if let role = snapshot.data()?["role"] as? String, !role.isEmpty {
+            name = snapshot.data()?["displayName"] as? String ?? ""
+            if let role = snapshot.data()?["role"] as? String,
+               !role.isEmpty {
                 state = .loggedIn(role: role)
             } else {
                 // 로그인은 됐는데 role 문서가 없음 → 역할 선택을 마저 해야 함
                 // (예: 로그인 직후 앱이 종료되어 역할 선택을 못 마친 경우)
-                state = .needsRole
+                state = .needsRole(name: name)
             }
         } catch {
             // 네트워크 오류 등으로 조회 실패 시, 일단 역할 선택 화면으로 보내고
             // 화면에서 재시도하도록 둡니다. 필요하면 별도 .error 상태를 추가해도 됩니다.
-            state = .needsRole
+            state = .needsRole(name: name)
         }
     }
     
