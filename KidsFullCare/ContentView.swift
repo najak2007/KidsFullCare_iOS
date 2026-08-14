@@ -12,6 +12,7 @@ import AuthenticationServices
 struct ContentView: View {
     @StateObject private var userViewModel = UserViewModel()
     @StateObject private var authGateViewModel = AuthGateViewModel()
+    @State private var webViewFirstLoadDone = false
     
 
     init() {
@@ -62,16 +63,26 @@ struct ContentView: View {
             if authGateViewModel.state == .checking {
                 ProgressView("확인 중....")
                     .background(Color(.systemBackground))
-            } else if authGateViewModel.state == .loggedIn (role: "parent" ) {
+            } else if authGateViewModel.state == .loggedIn(name: userViewModel.name, role: "parent" ) {
                 MainView(userViewModel: userViewModel, authGate: authGateViewModel)
-            } else if authGateViewModel.state == .loggedIn (role: "student" ) {
+            } else if authGateViewModel.state == .loggedIn(name: userViewModel.name, role: "student" ) {
+                
             } else {
                 if let url = URL(string: Config.KIDS_FULL_CARE_URL) {
-                    SignUpView(userViewModel: userViewModel, authGate: authGateViewModel, url: url)
+                    SignUpView(userViewModel: userViewModel, authGate: authGateViewModel, url: url, onFirstLoad: {
+                        webViewFirstLoadDone = true
+                    })
                         .ignoresSafeArea() // 안전 영역 무시하고 꽉 채우기
                 }
             }
+            
+            if(!webViewFirstLoadDone) {
+                Color(uiColor: .systemBackground)
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .animation(.easeOut(duration: 0.25), value: webViewFirstLoadDone)
     }
 }

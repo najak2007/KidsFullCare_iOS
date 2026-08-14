@@ -17,6 +17,7 @@ struct SignUpView: UIViewRepresentable {
     @ObservedObject var userViewModel: UserViewModel
     @ObservedObject var authGate: AuthGateViewModel
     let url: URL
+    var onFirstLoad: (() -> Void)?
 
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
@@ -50,7 +51,7 @@ struct SignUpView: UIViewRepresentable {
         webView.isOpaque = true
 
         userViewModel.webView = webView
-        context.coordinator.attach(webView: webView, authGate: authGate)
+        context.coordinator.attach(webView: webView, authGate: authGate, onFirstLoad: onFirstLoad)
 
         var request = URLRequest(url: url)
         request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
@@ -66,9 +67,11 @@ struct SignUpView: UIViewRepresentable {
 
     class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler, WKUIDelegate, UIGestureRecognizerDelegate {
         let userViewModel: UserViewModel
+        var isInitialLoad: Bool = true
         private weak var webView: WKWebView?
         private var authGate: AuthGateViewModel?
         private var stateCancellable: AnyCancellable?
+        private var onFirstLoad: (() -> Void)?
 
         // Apple 로그인 요청 시 사용한 원본(해시 전) nonce
         private var currentNonce: String?
@@ -78,9 +81,10 @@ struct SignUpView: UIViewRepresentable {
         }
 
         /// WebView와 AuthGateViewModel을 연결하고, 상태가 바뀔 때마다 JS로 알려줍니다.
-        func attach(webView: WKWebView, authGate: AuthGateViewModel) {
+        func attach(webView: WKWebView, authGate: AuthGateViewModel, onFirstLoad: (() -> Void)?) {
             self.webView = webView
             self.authGate = authGate
+            self.onFirstLoad = onFirstLoad
 
             stateCancellable = authGate.$state
                 .receive(on: DispatchQueue.main)
@@ -98,13 +102,15 @@ struct SignUpView: UIViewRepresentable {
             case .loggedOut(let returningUser):
                 payload["status"] = "loggedOut"
                 payload["returningUser"] = returningUser
-            case .needsRole:
+            case .needsRole(let name):
                 payload["status"] = "needsRole"
+                payload["name"] = name
             case .loginCancel:
                 payload["status"] = "loginCancel"
             case .loggedIn(let role):
                 payload["status"] = "loggedIn"
                 payload["role"] = role
+                payload["name"] = DeviceIdentifier.shared.getUserForKey("displayName")
             case .signUp:
                 payload["status"] = "signUp"
             }
@@ -137,6 +143,11 @@ struct SignUpView: UIViewRepresentable {
             // (JS의 window.onNativeAuthState 등록이 늦게 끝났을 경우 대비)
             if let authGate {
                 notifyJS(state: authGate.state)
+            }
+            
+            if isInitialLoad {
+                isInitialLoad = false
+                onFirstLoad?()
             }
         }
 

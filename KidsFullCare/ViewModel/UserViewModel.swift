@@ -20,6 +20,11 @@ class UserViewModel: ObservableObject {
     
     @Published var deviceUUID: String = ""
     @Published var pushToken: String = ""
+    var name: String {
+        get {
+            return DeviceIdentifier.shared.getUserForKey("displayName") ?? ""
+        }
+    }
     
     init() {
         realm = RealmManager.shared.realm
