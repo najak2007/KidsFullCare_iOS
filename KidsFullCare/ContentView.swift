@@ -63,9 +63,9 @@ struct ContentView: View {
             if authGateViewModel.state == .checking {
                 ProgressView("확인 중....")
                     .background(Color(.systemBackground))
-            } else if authGateViewModel.state == .loggedIn(name: userViewModel.name, role: "parent" ) {
+            } else if authGateViewModel.state == .loggedIn(role: "parent" ) {
                 MainView(userViewModel: userViewModel, authGate: authGateViewModel)
-            } else if authGateViewModel.state == .loggedIn(name: userViewModel.name, role: "student" ) {
+            } else if authGateViewModel.state == .loggedIn(role: "student" ) {
                 
             } else {
                 if let url = URL(string: Config.KIDS_FULL_CARE_URL) {

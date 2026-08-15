@@ -194,6 +194,35 @@ final class AuthGateViewModel: ObservableObject {
         try await Auth.auth().signIn(withEmail: email, password: password)
     }
 
+    /// 학생용 6자리 연결 코드를 생성해서 linkCodes/{code} 문서를 만들고,
+    /// users/{uid}에도 currentLinkCode로 표시해둡니다.
+    /// (원래 JS의 generateLinkCode.js와 동일한 로직을 네이티브로 옮긴 버전입니다)
+    func generateStudentLinkCode() async throws -> String {
+        guard let user = Auth.auth().currentUser else {
+            throw NSError(domain: "AuthGateViewModel", code: -1, userInfo: [
+                NSLocalizedDescriptionKey: "로그인이 필요합니다.",
+            ])
+        }
+ 
+        let code = Self.randomSixDigitCode()
+ 
+        try await db.collection("linkCodes").document(code).setData([
+            "studentUid": user.uid,
+            "createdAt": FieldValue.serverTimestamp(),
+            "used": false,
+        ])
+ 
+        try await db.collection("users").document(user.uid).updateData([
+            "currentLinkCode": code,
+        ])
+ 
+        return code
+    }
+    
+    private static func randomSixDigitCode() -> String {
+        String(Int.random(in: 100_000...999_999))
+    }
+    
     /// 역할 선택 화면에서 사용자가 학부모/학생을 고르면 호출합니다.
     func saveRole(_ role: String, extra: [String: Any] = [:]) async throws {
         guard let user = Auth.auth().currentUser else { return }

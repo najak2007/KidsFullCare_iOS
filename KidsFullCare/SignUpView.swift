@@ -31,6 +31,7 @@ struct SignUpView: UIViewRepresentable {
         userContentController.add(context.coordinator, name: "jsReady")      // JS가 리스너 등록 완료 후 호출
         userContentController.add(context.coordinator, name: "emailSignUp")  // { email, password }
         userContentController.add(context.coordinator, name: "emailSignIn")  // { email, password }
+        userContentController.add(context.coordinator, name: "generateLinkCode")
 
         config.userContentController = userContentController
 
@@ -191,6 +192,8 @@ struct SignUpView: UIViewRepresentable {
                    let password = body["password"] as? String {
                     handleEmailSignIn(email: email, password: password)
                 }
+            case "generateLinkCode":
+                handleGenerateLinkCode()
             default:
                 break
             }
@@ -266,9 +269,47 @@ struct SignUpView: UIViewRepresentable {
                 }
             }
         }
+        
+        private func handleGenerateLinkCode() {
+            Task {
+                do {
+                    let code = try await authGate?.generateStudentLinkCode() ?? ""
+                    sendLinkCodeResult(code: code, errorMessage: nil)
+                } catch {
+                    sendLinkCodeResult(code: nil, errorMessage: "코드 생성 중 오류가 발생했습니다.")
+                }
+            }
+        }
+        
+        /// roleSelect/emailSignIn 등과 콜백 이름이 겹치지 않도록 전용 콜백을 씁니다.
+        /// (SignUp.jsx가 window.onNativeSignInError를 이미 쓰고 있어서, 그걸 재사용하면
+        ///  StudentLinkScreen이 열려있는 동안 SignUp.jsx의 에러 핸들러를 덮어써버립니다.)
+        private func sendLinkCodeResult(code: String?, errorMessage: String?) {
+            var payload: [String: Any] = [:]
+            if let code {
+                payload["code"] = code
+            }
+            if let errorMessage {
+                payload["message"] = errorMessage
+            }
+            
+            guard
+                let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
+                let jsonString = String(data: jsonData, encoding: .utf8)
+            else { return }
+ 
+            let jsScript = """
+                (function() {
+                    window.onNativeLinkCodeResult && window.onNativeLinkCodeResult(\(jsonString));
+                    return null;
+                })();
+                """
+            DispatchQueue.main.async { [weak self] in
+                self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
+            }
+        }
 
         // MARK: - 에러 전달
-
         private func sendErrorToJS(provider: String, message: String, code: String?) {
             var payload: [String: Any] = ["provider": provider, "message": message]
             if let code {
