@@ -31,6 +31,8 @@ struct SignUpView: UIViewRepresentable {
         userContentController.add(context.coordinator, name: "jsReady")      // JS가 리스너 등록 완료 후 호출
         userContentController.add(context.coordinator, name: "emailSignUp")  // { email, password }
         userContentController.add(context.coordinator, name: "emailSignIn")  // { email, password }
+        userContentController.add(context.coordinator, name: "generateLinkCode")
+        userContentController.add(context.coordinator, name: "resetDevice")
 
         config.userContentController = userContentController
 
@@ -49,6 +51,7 @@ struct SignUpView: UIViewRepresentable {
         webView.backgroundColor = .systemBackground
         webView.scrollView.backgroundColor = .systemBackground
         webView.isOpaque = true
+        webView.underPageBackgroundColor = .systemBackground
 
         userViewModel.webView = webView
         context.coordinator.attach(webView: webView, authGate: authGate, onFirstLoad: onFirstLoad)
@@ -191,6 +194,10 @@ struct SignUpView: UIViewRepresentable {
                    let password = body["password"] as? String {
                     handleEmailSignIn(email: email, password: password)
                 }
+            case "generateLinkCode":
+                handleGenerateLinkCode()
+            case "resetDevice":
+                authGate?.resetDevice()
             default:
                 break
             }
@@ -268,6 +275,53 @@ struct SignUpView: UIViewRepresentable {
         }
 
         // MARK: - 에러 전달
+        
+        private func handleGenerateLinkCode() {
+            Task {
+                do {
+                    let code = try await authGate?.generateStudentLinkCode() ?? ""
+                    let uid = Auth.auth().currentUser?.uid
+                    sendLinkCodeResult(code: code, uid: uid, errorMessage: nil)
+                } catch {
+                    sendLinkCodeResult(code: nil, uid: nil, errorMessage: "코드 생성 중 오류가 발생했습니다.")
+                }
+            }
+        }
+        
+        /// roleSelect/emailSignIn 등과 콜백 이름이 겹치지 않도록 전용 콜백을 씁니다.
+        /// (SignUp.jsx가 window.onNativeSignInError를 이미 쓰고 있어서, 그걸 재사용하면
+        ///  StudentLinkScreen이 열려있는 동안 SignUp.jsx의 에러 핸들러를 덮어써버립니다.)
+        private func sendLinkCodeResult(code: String?, uid: String?, errorMessage: String?) {
+            var payload: [String: Any] = [:]
+            if let code {
+                payload["code"] = code
+            }
+            
+            if let uid {
+                payload["uid"] = uid
+            }
+            
+            if let errorMessage {
+                payload["message"] = errorMessage
+            }
+            
+            guard
+                let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
+                let jsonString = String(data: jsonData, encoding: .utf8)
+            else {
+                return
+            }
+ 
+            let jsScript = """
+                (function() {
+                    window.onNativeLinkCodeResult && window.onNativeLinkCodeResult(\(jsonString));
+                    return null;
+                })();
+                """
+            DispatchQueue.main.async { [weak self] in
+                self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
+            }
+        }
 
         private func sendErrorToJS(provider: String, message: String, code: String?) {
             var payload: [String: Any] = ["provider": provider, "message": message]
@@ -394,5 +448,25 @@ private extension SignUpView.Coordinator {
         let inputData = Data(input.utf8)
         let hashedData = SHA256.hash(data: inputData)
         return hashedData.compactMap { String(format: "%02x", $0) }.joined()
+    }
+}
+
+extension WKWebView {
+    /// QR(유니버설 링크)로 앱이 열렸을 때, code/uid를 JS로 전달합니다.
+    /// StudentLinkScreen 등에서 window.onNativeIncomingLinkCode로 받으면 됩니다.
+    func notifyIncomingLinkCode(code: String, uid: String) {
+        let payload: [String: Any] = ["code": code, "uid": uid]
+        guard
+            let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
+            let jsonString = String(data: jsonData, encoding: .utf8)
+        else { return }
+ 
+        let jsScript = """
+            (function() {
+                window.onNativeIncomingLinkCode && window.onNativeIncomingLinkCode(\(jsonString));
+                return null;
+            })();
+            """
+        evaluateJavaScript(jsScript, completionHandler: nil)
     }
 }

@@ -34,15 +34,42 @@ final class AuthGateViewModel: ObservableObject {
     @Published private(set) var state: AuthGateState = .checking
     @Published var isAuthenticated: AppleAuthState = .authInit
     
-    private var authListenerHandle: AuthStateDidChangeListenerHandle?
+    private nonisolated(unsafe) var authListenerHandle: AuthStateDidChangeListenerHandle?
     private let db = Firestore.firestore()
 
     init() {
-//        KeychainHelper.shared.delete(account: "userID")
-
         // 이게 이 아키텍처의 핵심입니다.
         // 앱이 켜질 때, 그리고 로그인/로그아웃이 일어날 때마다 자동으로 호출됩니다.
-        authListenerHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
+        
+        guard let userInfo = DeviceIdentifier.shared.getUserID(),
+              let user = userInfo["user"] as? String
+        else {
+            do {
+                try Auth.auth().signOut()
+            } catch let signOutError as NSError {
+#if DEBUG
+                print("Error signing out: %@", signOutError)
+#endif
+            }
+            self.state = .signUp
+            return
+        }
+        
+        ASAuthorizationAppleIDProvider().getCredentialState(forUserID: user) { (state, error) in
+            switch state {
+            case .authorized:
+#if DEBUG
+                print("인증 유효")
+#endif
+            case .revoked, .notFound:
+                Task { @MainActor in
+                    self.resetDevice()
+                }
+            default: break
+            }
+        }
+        
+        self.authListenerHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             Task {
                 await self?.handleAuthChange(user: user)
             }
@@ -187,6 +214,8 @@ final class AuthGateViewModel: ObservableObject {
     /// 이메일/비밀번호로 신규 가입 (비밀번호 확인은 JS 쪽에서 이미 검증하고 넘어옵니다)
     func signUpWithEmail(email: String, password: String) async throws {
         try await Auth.auth().createUser(withEmail: email, password: password)
+        
+        let result = try await Auth.auth().signIn(withEmail: email, password: password)
     }
 
     /// 이메일/비밀번호로 기존 계정 로그인
@@ -194,6 +223,35 @@ final class AuthGateViewModel: ObservableObject {
         try await Auth.auth().signIn(withEmail: email, password: password)
     }
 
+    /// 학생용 6자리 연결 코드를 생성해서 linkCodes/{code} 문서를 만들고,
+    /// users/{uid}에도 currentLinkCode로 표시해둡니다.
+    /// (원래 JS의 generateLinkCode.js와 동일한 로직을 네이티브로 옮긴 버전입니다)
+    func generateStudentLinkCode() async throws -> String {
+        guard let user = Auth.auth().currentUser else {
+            throw NSError(domain: "AuthGateViewModel", code: -1, userInfo: [
+                NSLocalizedDescriptionKey: "로그인이 필요합니다.",
+            ])
+        }
+ 
+        let code = Self.randomSixDigitCode()
+ 
+        try await db.collection("linkCodes").document(code).setData([
+            "studentUid": user.uid,
+            "createdAt": FieldValue.serverTimestamp(),
+            "used": false,
+        ])
+ 
+        try await db.collection("users").document(user.uid).updateData([
+            "currentLinkCode": code,
+        ])
+ 
+        return code
+    }
+    
+    private static func randomSixDigitCode() -> String {
+        String(Int.random(in: 100_000...999_999))
+    }
+    
     /// 역할 선택 화면에서 사용자가 학부모/학생을 고르면 호출합니다.
     func saveRole(_ role: String, extra: [String: Any] = [:]) async throws {
         guard let user = Auth.auth().currentUser else { return }
@@ -225,5 +283,10 @@ final class AuthGateViewModel: ObservableObject {
     func signOut() {
         try? Auth.auth().signOut()
         // 리스너가 자동으로 .loggedOut으로 바꿔줍니다.
+    }
+    
+    func resetDevice() {
+        KeychainHelper.shared.delete(account: "userID")
+        try? Auth.auth().signOut()
     }
 }

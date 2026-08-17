@@ -14,8 +14,16 @@ struct ContentView: View {
     @StateObject private var authGateViewModel = AuthGateViewModel()
     @State private var webViewFirstLoadDone = false
     
-
     init() {
+#if true
+        do {
+            try Auth.auth().signOut()
+        } catch let signOutError as NSError {
+#if DEBUG
+            print("Error signing out: \(signOutError)")
+#endif
+        }
+#else
         guard let userInfo = DeviceIdentifier.shared.getUserID(),
               let user = userInfo["user"] as? String
         else {
@@ -53,6 +61,7 @@ struct ContentView: View {
 #endif
             }
         }
+#endif
     }
     
     var body: some View {
@@ -63,9 +72,9 @@ struct ContentView: View {
             if authGateViewModel.state == .checking {
                 ProgressView("확인 중....")
                     .background(Color(.systemBackground))
-            } else if authGateViewModel.state == .loggedIn(name: userViewModel.name, role: "parent" ) {
+            } else if authGateViewModel.state == .loggedIn(role: "parent" ) {
                 MainView(userViewModel: userViewModel, authGate: authGateViewModel)
-            } else if authGateViewModel.state == .loggedIn(name: userViewModel.name, role: "student" ) {
+            } else if authGateViewModel.state == .loggedIn(role: "student" ) {
                 
             } else {
                 if let url = URL(string: Config.KIDS_FULL_CARE_URL) {
@@ -73,6 +82,9 @@ struct ContentView: View {
                         webViewFirstLoadDone = true
                     })
                         .ignoresSafeArea() // 안전 영역 무시하고 꽉 채우기
+                        .onOpenURL { url in
+                            handleIncomingLink(url)
+                        }
                 }
             }
             
@@ -84,5 +96,20 @@ struct ContentView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .animation(.easeOut(duration: 0.25), value: webViewFirstLoadDone)
+    }
+    
+    /// https://kidsfullcare.app/link?code=123456&uid=xxx 형태의 유니버설 링크를 받아서
+    /// code/uid를 뽑아 JS로 전달합니다. (QR을 카메라로 찍었을 때 이 경로로 앱이 열립니다)
+    private func handleIncomingLink(_ url: URL) {
+        guard
+            let components = URLComponents(url: url, resolvingAgainstBaseURL: true),
+            components.path == "/link",
+            let code = components.queryItems?.first(where: { $0.name == "code" })?.value,
+            let uid = components.queryItems?.first(where: { $0.name == "uid" })?.value
+        else {
+            return
+        }
+ 
+        userViewModel.webView?.notifyIncomingLinkCode(code: code, uid: uid)
     }
 }
