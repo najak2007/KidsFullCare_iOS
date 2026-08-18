@@ -42,7 +42,7 @@ final class AuthGateViewModel: ObservableObject {
         // 앱이 켜질 때, 그리고 로그인/로그아웃이 일어날 때마다 자동으로 호출됩니다.
         
         guard let userInfo = DeviceIdentifier.shared.getUserID(),
-              let user = userInfo["user"] as? String
+              let user = userInfo["firebaseUID"] as? String
         else {
             do {
                 try Auth.auth().signOut()
