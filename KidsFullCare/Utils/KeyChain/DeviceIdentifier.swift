@@ -27,8 +27,8 @@ class DeviceIdentifier {
         return newUUID
     }
     
-    func setUserID(_ appleCredential: ASAuthorizationAppleIDCredential, _ firebaseUID: String = "") -> String {
-        guard let _ = KeychainHelper.shared.read(account: keychainUserID)
+    func setUserAppleID(_ appleCredential: ASAuthorizationAppleIDCredential, _ firebaseUID: String = "") -> String {
+        guard let userInfo = self.getUserID()
         else {
             var displayName: String = ""
             if let fullName = appleCredential.fullName {
@@ -52,7 +52,36 @@ class DeviceIdentifier {
             KeychainHelper.shared.save(jsonString, account: keychainUserID)
             return displayName
         }
+        
+        if !firebaseUID.isEmpty, firebaseUID == userInfo["firebaseUID"] as? String {
+            
+        }
+        
         return ""
+    }
+    
+    func setUserEmailID(name: String, email: String, firebaseUID: String = "") {
+        guard let userInfo = self.getUserID()
+        else {
+            let userDict: [String: Any] = [
+                "email": email,
+                "firebaseUID": firebaseUID,
+                "provider": "email"
+            ]
+            
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: userDict, options: .prettyPrinted),
+                  let jsonString = String(data: jsonData, encoding: .utf8)
+            else {
+                return
+            }
+            KeychainHelper.shared.save(jsonString, account: keychainUserID)
+            return
+        }
+        
+        if userInfo["email"] as? String != email {
+            /// 기존 저장된 이메일과 다른 정보가 있다.
+            /// 어떤 처리를 해야 할까?
+        }
     }
     
     func getUserID() -> [String: Any]? {

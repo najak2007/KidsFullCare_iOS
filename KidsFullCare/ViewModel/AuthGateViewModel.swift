@@ -197,7 +197,7 @@ final class AuthGateViewModel: ObservableObject {
         // Firebase 로그인 (최초 접속 시 자동 회원가입)
         let result = try await Auth.auth().signIn(with: credential)
         
-        let displayName = DeviceIdentifier.shared.setUserID(appleCredential, result.user.uid)
+        let displayName = DeviceIdentifier.shared.setUserAppleID(appleCredential, result.user.uid)
         
         try await db.collection("users").document(result.user.uid).setData([
             "uid": result.user.uid,
@@ -205,17 +205,30 @@ final class AuthGateViewModel: ObservableObject {
             "uuid": DeviceIdentifier.shared.getDeviceUUID(),
             "email": result.user.email ?? "",
             "displayName": result.user.displayName ?? displayName,
-            "provider": "apple.com",
+            "provider": "apple",
             "updatedAt": FieldValue.serverTimestamp(),
         ], merge: true)
         
     }
 
     /// 이메일/비밀번호로 신규 가입 (비밀번호 확인은 JS 쪽에서 이미 검증하고 넘어옵니다)
-    func signUpWithEmail(email: String, password: String) async throws {
+    func signUpWithEmail(name: String, email: String, password: String) async throws {
         try await Auth.auth().createUser(withEmail: email, password: password)
         
         let result = try await Auth.auth().signIn(withEmail: email, password: password)
+        
+        DeviceIdentifier.shared.setUserEmailID(name: name, email: email, firebaseUID: result.user.uid)
+        
+        try await db.collection("users").document(result.user.uid).setData([
+            "uid": result.user.uid,
+            "uuid": DeviceIdentifier.shared.getDeviceUUID(),
+            "email": result.user.email ?? "",
+            "displayName": result.user.displayName ?? name,
+            "provider": "email",
+            "updatedAt": FieldValue.serverTimestamp(),
+        ], merge: true)
+        
+        state = .needsRole(name: name)
     }
 
     /// 이메일/비밀번호로 기존 계정 로그인

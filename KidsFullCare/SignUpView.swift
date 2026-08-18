@@ -184,9 +184,10 @@ struct SignUpView: UIViewRepresentable {
                 }
             case "emailSignUp":
                 if let body = message.body as? [String: Any],
+                   let name = body["name"] as? String,
                    let email = body["email"] as? String,
                    let password = body["password"] as? String {
-                    handleEmailSignUp(email: email, password: password)
+                    handleEmailSignUp(name: name, email: email, password: password)
                 }
             case "emailSignIn":
                 if let body = message.body as? [String: Any],
@@ -254,10 +255,10 @@ struct SignUpView: UIViewRepresentable {
 
         // MARK: - 이메일/비밀번호 가입 & 로그인
 
-        private func handleEmailSignUp(email: String, password: String) {
+        private func handleEmailSignUp(name: String, email: String, password: String) {
             Task {
                 do {
-                    try await authGate?.signUpWithEmail(email: email, password: password)
+                    try await authGate?.signUpWithEmail(name: name, email: email, password: password)
                 } catch {
                     sendErrorToJS(provider: "email", message: error.localizedDescription, code: Self.firebaseAuthErrorCode(from: error))
                 }
