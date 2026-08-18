@@ -73,6 +73,7 @@ extension NotificationManager: MessagingDelegate {
             .setData( [
                 "fcmToken": token,
                 "uuid": DeviceIdentifier.shared.getDeviceUUID(),
+                "uid": userId,
                 "platform": "i"
             ], merge: true) { error in
                 if let error = error {

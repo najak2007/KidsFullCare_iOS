@@ -7,6 +7,7 @@
 
 import Foundation
 import AuthenticationServices
+import FirebaseFirestore
 
 class DeviceIdentifier {
     static let shared = DeviceIdentifier()

@@ -60,6 +60,17 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
         print("❌ 실패: 원격 알림 등록에 실패했습니다: \(error.localizedDescription)")
     }
+    
+    func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping([UIUserActivityRestoring]?) -> Void) -> Bool {
+
+        if userActivity.activityType == NSUserActivityTypeBrowsingWeb,
+           let url = userActivity.webpageURL {
+            print("Received URL: \(url)")
+            return true
+        }
+        
+        return false
+    }
         
     // 4. 앱이 포그라운드(실행 중) 상태일 때 푸시가 오면 처리하는 옵션 (선택 사항)
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
