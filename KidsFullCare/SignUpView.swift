@@ -102,9 +102,10 @@ struct SignUpView: UIViewRepresentable {
             switch state {
             case .checking:
                 payload["status"] = "checking"
-            case .loggedOut(let returningUser):
+            case .loggedOut(let returningUser, let provider):
                 payload["status"] = "loggedOut"
                 payload["returningUser"] = returningUser
+                payload["provider"] = provider
             case .needsRole(let name):
                 payload["status"] = "needsRole"
                 payload["name"] = name
@@ -259,6 +260,7 @@ struct SignUpView: UIViewRepresentable {
             Task {
                 do {
                     try await authGate?.signUpWithEmail(name: name, email: email, password: password)
+                    self.scrollWebViewToTop()
                 } catch {
                     sendErrorToJS(provider: "email", message: error.localizedDescription, code: Self.firebaseAuthErrorCode(from: error))
                 }
@@ -269,12 +271,28 @@ struct SignUpView: UIViewRepresentable {
             Task {
                 do {
                     try await authGate?.signInWithEmail(email: email, password: password)
+                    self.scrollWebViewToTop()
                 } catch {
                     sendErrorToJS(provider: "email", message: error.localizedDescription, code: Self.firebaseAuthErrorCode(from: error))
                 }
             }
         }
 
+        /// 로그인/화면 전환 직후 웹뷰 콘텐츠를 맨 위로 스크롤합니다.
+        private func scrollWebViewToTop() {
+            DispatchQueue.main.async { [weak self] in
+                guard let scrollView = self?.webView?.scrollView
+                else {
+                    return
+                }
+                let target = CGPoint(
+                    x: -scrollView.adjustedContentInset.left,
+                    y: -scrollView.adjustedContentInset.top
+                )
+                scrollView.setContentOffset(target, animated: true)
+            }
+        }
+        
         // MARK: - 에러 전달
         
         private func handleGenerateLinkCode() {

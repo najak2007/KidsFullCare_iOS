@@ -77,6 +77,14 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // 앱이 켜져 있을 때도 배너와 소리가 나도록 설정
         completionHandler([.banner, .list, .sound])
     }
+    
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        // 데이터 처리 로직 수행
+        print("didReceiveRemoteNotification called: \(userInfo)")
+        
+        // 작업 완료 상태 전달 (newData, noData, failed)
+        completionHandler(.newData)
+    }
 }
 
 

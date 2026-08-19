@@ -66,7 +66,8 @@ class DeviceIdentifier {
             let userDict: [String: Any] = [
                 "email": email,
                 "firebaseUID": firebaseUID,
-                "provider": "email"
+                "provider": "email",
+                "displayName": name
             ]
             
             guard let jsonData = try? JSONSerialization.data(withJSONObject: userDict, options: .prettyPrinted),
