@@ -65,17 +65,19 @@ final class AuthGateViewModel: ObservableObject {
         }
         
         if provider == "apple" {
-            ASAuthorizationAppleIDProvider().getCredentialState(forUserID: user) { (state, error) in
-                switch state {
-                case .authorized:
+            if let user = userInfo["user"] as? String {
+                ASAuthorizationAppleIDProvider().getCredentialState(forUserID: user) { (state, error) in
+                    switch state {
+                    case .authorized:
 #if DEBUG
-                    print("인증 유효")
+                        print("인증 유효")
 #endif
-                case .revoked, .notFound:
-                    Task { @MainActor in
-                        self.resetDevice()
+                    case .revoked, .notFound:
+                        Task { @MainActor in
+                            self.resetDevice()
+                        }
+                    default: break
                     }
-                default: break
                 }
             }
         }
@@ -136,7 +138,7 @@ final class AuthGateViewModel: ObservableObject {
     
     func checkAppleSignInStatus(completion: ((AppleAuthState) -> Void)? = nil) {
         guard let userInfo = DeviceIdentifier.shared.getUserID(),
-            let userID = userInfo["firebaseUID"] as? String,
+            let _ = userInfo["firebaseUID"] as? String,
             let provider = userInfo["provider"] as? String
         else {
             DispatchQueue.main.async {
@@ -148,35 +150,40 @@ final class AuthGateViewModel: ObservableObject {
         
         if provider == "apple" {
             let appleIDProvider = ASAuthorizationAppleIDProvider()
-            appleIDProvider.getCredentialState(forUserID: userID) { [weak self] (credentialState, error) in
-                DispatchQueue.main.async {
-                    switch credentialState {
-                    case .authorized:
+            if let userID = userInfo["user"] as? String {
+                appleIDProvider.getCredentialState(forUserID: userID) { [weak self] (credentialState, error) in
+                    DispatchQueue.main.async {
+                        switch credentialState {
+                        case .authorized:
 #if DEBUG
-                        print("Apple ID 인증 성공(로그인 상태)")
+                            print("Apple ID 인증 성공(로그인 상태)")
 #endif
-                        self?.isAuthenticated = .authorized
-                        completion?(.authorized)
-                    case .revoked:
+                            self?.isAuthenticated = .authorized
+                            completion?(.authorized)
+                        case .revoked:
 #if DEBUG
-                        print("Apple ID 인증이 취소됨 (사용자가 설정에서 인증 해제 등...)")
+                            print("Apple ID 인증이 취소됨 (사용자가 설정에서 인증 해제 등...)")
 #endif
-                        self?.isAuthenticated = .revoked
-                        completion?(.revoked)
-                    case .notFound:
+                            self?.isAuthenticated = .revoked
+                            completion?(.revoked)
+                        case .notFound:
 #if DEBUG
-                        print("Apple ID 자격 증명을 찾을 수 없음")
+                            print("Apple ID 자격 증명을 찾을 수 없음")
 #endif
-                        self?.isAuthenticated = .notFound
-                        completion?(.notFound)
-                    default:
+                            self?.isAuthenticated = .notFound
+                            completion?(.notFound)
+                        default:
 #if DEBUG
-                        print("알 수 없는 상태 또는 오류 발생: \(String(describing: error))")
+                            print("알 수 없는 상태 또는 오류 발생: \(String(describing: error))")
 #endif
-                        self?.isAuthenticated = .unKnown
-                        completion?(.unKnown)
+                            self?.isAuthenticated = .unKnown
+                            completion?(.unKnown)
+                        }
                     }
                 }
+            } else {
+                self.isAuthenticated = .unKnown
+                completion?(.unKnown)
             }
         } else if provider == "email" {
             isAuthenticated = .authorized
