@@ -41,7 +41,8 @@ class DeviceIdentifier {
                 "displayName" : displayName,
                 "email" : appleCredential.email ?? "",
                 "ageRange" : appleCredential.userAgeRange.rawValue,
-                "firebaseUID" : firebaseUID
+                "firebaseUID" : firebaseUID,
+                "provider": "apple",
             ]
             
             guard let jsonData = try? JSONSerialization.data(withJSONObject: userDict, options: .prettyPrinted),
