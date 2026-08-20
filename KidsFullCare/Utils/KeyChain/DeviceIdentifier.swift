@@ -104,4 +104,17 @@ class DeviceIdentifier {
     func getUserForKey(_ key: String) -> String? {
         return getUserID()?[key] as? String
     }
+    
+    func setUserPassword(_ faceID: Data, _ password: String?) {
+        guard let passStr = password
+        else {
+            KeychainHelper.shared.delete(account: faceID.hexString)
+            return
+        }
+        KeychainHelper.shared.save(passStr, account: faceID.hexString)
+    }
+    
+    func getUserPassword(_ faceID: Data) -> String? {
+        return KeychainHelper.shared.read(account: faceID.hexString )
+    }
 }

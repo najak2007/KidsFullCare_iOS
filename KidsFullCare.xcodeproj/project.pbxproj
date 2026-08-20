@@ -372,6 +372,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = KidsFullCare/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "엄마의 마음";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "얼굴 인증을 이용해 이메일 로그인을 지원하기 위해 권한을 요청합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -415,6 +416,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = KidsFullCare/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "엄마의 마음";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "얼굴 인증을 이용해 이메일 로그인을 지원하기 위해 권한을 요청합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
