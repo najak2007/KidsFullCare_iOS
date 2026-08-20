@@ -18,7 +18,6 @@ struct ContentView: View {
     @State private var password: String? = ""
     
     init() {
-#if true
         do {
             try Auth.auth().signOut()
         } catch let signOutError as NSError {
@@ -26,45 +25,6 @@ struct ContentView: View {
             print("Error signing out: \(signOutError)")
 #endif
         }
-#else
-        guard let userInfo = DeviceIdentifier.shared.getUserID(),
-              let user = userInfo["user"] as? String
-        else {
-            do {
-                try Auth.auth().signOut()
-            } catch let signOutError as NSError {
-#if DEBUG
-                print("Error signing out: \(signOutError)")
-#endif
-            }
-            return
-        }
-        if !user.isEmpty {
-            ASAuthorizationAppleIDProvider().getCredentialState(forUserID: user) { (state, error) in
-                switch state {
-                case .authorized:
-                    print("인증 유효")
-                case .revoked, .notFound:
-                    do {
-                        try Auth.auth().signOut()
-                    } catch let signOutError as NSError {
-#if DEBUG
-                        print("Error signing out: \(signOutError)")
-#endif
-                    }
-                default: break
-                }
-            }
-        } else {
-            do {
-                try Auth.auth().signOut()
-            } catch let signOutError as NSError {
-#if DEBUG
-                print("Error signing out: \(signOutError)")
-#endif
-            }
-        }
-#endif
     }
     
     var body: some View {
@@ -72,14 +32,11 @@ struct ContentView: View {
             Color(.systemBackground)
                 .ignoresSafeArea()
 
+#if true
             if authGateViewModel.state == .checking {
                 ProgressView("확인 중....")
                     .background(Color(.systemBackground))
-            } else if authGateViewModel.state == .loggedIn(role: "parent") || authGateViewModel.state == .loggedIn(role: "student") {
-                
-                MainView(userViewModel: userViewModel, authGate: authGateViewModel)
-                
-            }  else {
+            } else {
                 if let url = URL(string: Config.KIDS_FULL_CARE_URL) {
                     SignUpView(userViewModel: userViewModel, authGate: authGateViewModel, url: url, onFirstLoad: {
                         webViewFirstLoadDone = true
@@ -90,6 +47,26 @@ struct ContentView: View {
                         }
                 }
             }
+#else
+            if authGateViewModel.state == .checking {
+                ProgressView("확인 중....")
+                    .background(Color(.systemBackground))
+            } else if authGateViewModel.state == .loggedIn(role: "parent") || authGateViewModel.state == .loggedIn(role: "student") {
+                
+                MainView(userViewModel: userViewModel, authGate: authGateViewModel)
+                
+            } else {
+                if let url = URL(string: Config.KIDS_FULL_CARE_URL) {
+                    SignUpView(userViewModel: userViewModel, authGate: authGateViewModel, url: url, onFirstLoad: {
+                        webViewFirstLoadDone = true
+                    })
+                        .ignoresSafeArea() // 안전 영역 무시하고 꽉 채우기
+                        .onOpenURL { url in
+                            handleIncomingLink(url)
+                        }
+                }
+            }
+#endif
             
             if(!webViewFirstLoadDone) {
                 Color(uiColor: .systemBackground)
