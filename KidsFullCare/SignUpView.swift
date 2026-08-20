@@ -33,6 +33,7 @@ struct SignUpView: UIViewRepresentable {
         userContentController.add(context.coordinator, name: "emailSignIn")  // { email, password }
         userContentController.add(context.coordinator, name: "generateLinkCode")
         userContentController.add(context.coordinator, name: "resetDevice")
+        userContentController.add(context.coordinator, name: "inputFocus")
 
         config.userContentController = userContentController
 
@@ -200,6 +201,10 @@ struct SignUpView: UIViewRepresentable {
                 handleGenerateLinkCode()
             case "resetDevice":
                 authGate?.resetDevice()
+            case "inputFocus":
+                if let fieldName = message.body as? String {
+                    handleInputFocus(fieldName: fieldName)
+                }
             default:
                 break
             }
@@ -293,7 +298,49 @@ struct SignUpView: UIViewRepresentable {
             }
         }
         
-        // MARK: - 에러 전달
+        private func handleInputFocus(fieldName: String) {
+#if DEBUG
+            print("handleInputFocus fieldName = \(fieldName)")
+#endif
+            if self.authGate?.isUseBiometricAck == .사용 {
+                FaceIDManager().authenticate(completion: { [weak self] (isResult, keyID) in
+                    if isResult, let faceID = keyID {
+                        if let email = DeviceIdentifier.shared.getUserForKey("email"),
+                           let password = DeviceIdentifier.shared.getUserPassword(faceID) {
+                            self?.sendBiometricLoginResult(email: email, password: password)
+                        }
+                    }
+                })
+            }
+        }
+        
+        private func sendBiometricLoginResult(email: String, password: String) {
+            Task {
+                try await Auth.auth().signIn(withEmail: email, password: password)
+            }
+            
+            let payload: [String: Any] = [
+                "email": email,
+                "password": password
+            ]
+            
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
+                  let jsonString = String(data: jsonData, encoding: .utf8)
+            else {
+                return
+            }
+            
+            let jsScript = """
+                (function() {
+                    window.onNativeBiometricLogin && window.onNativeBiometricLogin(\(jsonString));
+                    return null;
+                })();
+                """
+            
+            DispatchQueue.main.async { [weak self] in
+                self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
+            }
+        }
         
         private func handleGenerateLinkCode() {
             Task {
@@ -342,6 +389,7 @@ struct SignUpView: UIViewRepresentable {
             }
         }
 
+        // MARK: - 에러 전달
         private func sendErrorToJS(provider: String, message: String, code: String?) {
             var payload: [String: Any] = ["provider": provider, "message": message]
             if let code {

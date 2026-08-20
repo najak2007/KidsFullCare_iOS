@@ -12,6 +12,8 @@ import FirebaseAuth
 import FirebaseFirestore
 import Combine
 
+var bioAuthRequest = PassthroughSubject<String, Never>()
+
 enum AuthGateState: Equatable {
     case checking                                   // 최초 로그인 상태 확인 중 (스플래시)
     case loggedOut(returningUser: Bool, provider: String)             // 로그인 안 됨. returningUser: 이 기기가 예전에 가입한 적 있는지
@@ -33,6 +35,7 @@ enum AppleAuthState: Equatable {
 final class AuthGateViewModel: ObservableObject {
     @Published private(set) var state: AuthGateState = .checking
     @Published var isAuthenticated: AppleAuthState = .authInit
+    @Published var isBioAuthReq : Bool = false
     
     private nonisolated(unsafe) var authListenerHandle: AuthStateDidChangeListenerHandle?
     private let db = Firestore.firestore()
@@ -50,7 +53,7 @@ final class AuthGateViewModel: ObservableObject {
         }
         
         guard let userInfo = DeviceIdentifier.shared.getUserID(),
-              let user = userInfo["firebaseUID"] as? String,
+              let _ = userInfo["firebaseUID"] as? String,
               let provider = userInfo["provider"] as? String
         else {
             do {
@@ -250,6 +253,9 @@ final class AuthGateViewModel: ObservableObject {
     func signInWithEmail(email: String, password: String) async throws {
         try await Auth.auth().signIn(withEmail: email, password: password)
         
+        if self.isUseBiometricAck == .사용여부_질문필요 {
+            bioAuthRequest.send(password)
+        }
     }
 
     /// 학생용 6자리 연결 코드를 생성해서 linkCodes/{code} 문서를 만들고,
@@ -317,5 +323,17 @@ final class AuthGateViewModel: ObservableObject {
     func resetDevice() {
         KeychainHelper.shared.delete(account: "userID")
         try? Auth.auth().signOut()
+    }
+    
+    var isUseBiometricAck: BiometricUseState {
+        set {
+            UserDefaults.standard.set(newValue.rawValue, forKey: "isUseBiometric")
+        }
+        get {
+            if let biometicsValue = UserDefaults.standard.string(forKey: "isUseBiometric") {
+                return BiometricUseState(rawValue: biometicsValue) ?? .사용여부_질문필요
+            }
+            return .사용여부_질문필요
+        }
     }
 }
