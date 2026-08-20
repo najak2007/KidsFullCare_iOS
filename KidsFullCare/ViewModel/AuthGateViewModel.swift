@@ -295,12 +295,7 @@ final class AuthGateViewModel: ObservableObject {
         let displayName = DeviceIdentifier.shared.getUserForKey("displayName") ?? ""
         
         var payload: [String: Any] = [
-            "uid": user.uid,
             "role": role,
-            "email": user.email ?? "",
-            "displayName": user.displayName ?? displayName,
-            "provider": user.providerData.first?.providerID ?? "unknown",
-            "createdAt": FieldValue.serverTimestamp(),
         ]
 
         // uid/role/createdAt 등 예약 필드는 extra가 덮어쓰지 못하게 막습니다.
@@ -311,7 +306,6 @@ final class AuthGateViewModel: ObservableObject {
 
         try await db.collection("users").document(user.uid).setData(payload, merge: true)
 
-        // 다음 addStateDidChangeListener를 기다리지 않고 즉시 반영합니다.
         state = .loggedIn(role: role)
     }
 
