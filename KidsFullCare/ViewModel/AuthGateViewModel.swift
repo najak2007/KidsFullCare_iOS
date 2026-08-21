@@ -20,7 +20,7 @@ enum AuthGateState: Equatable {
     case needsRole(name: String)                    // 로그인은 됐지만 역할(role) 미선택 → 역할 선택 화면
     case loginCancel
     case signUp
-    case loggedIn(role: String)                     // 로그인 + 역할 선택까지 완료 → 메인 화면
+    case loggedIn(role: String, profileImg: String)                     // 로그인 + 역할 선택까지 완료 → 메인 화면
 }
 
 enum AppleAuthState: Equatable {
@@ -113,7 +113,7 @@ final class AuthGateViewModel: ObservableObject {
             name = snapshot.data()?["displayName"] as? String ?? ""
             if let role = snapshot.data()?["role"] as? String,
                !role.isEmpty {
-                state = .loggedIn(role: role)
+                state = .loggedIn(role: role, profileImg: DeviceIdentifier.shared.getProfileImage(user.uid))
             } else {
                 // 로그인은 됐는데 role 문서가 없음 → 역할 선택을 마저 해야 함
                 // (예: 로그인 직후 앱이 종료되어 역할 선택을 못 마친 경우)
@@ -290,9 +290,6 @@ final class AuthGateViewModel: ObservableObject {
     /// 역할 선택 화면에서 사용자가 학부모/학생을 고르면 호출합니다.
     func saveRole(_ role: String, extra: [String: Any] = [:]) async throws {
         guard let user = Auth.auth().currentUser else { return }
-
-        
-        let displayName = DeviceIdentifier.shared.getUserForKey("displayName") ?? ""
         
         var payload: [String: Any] = [
             "role": role,
@@ -306,7 +303,7 @@ final class AuthGateViewModel: ObservableObject {
 
         try await db.collection("users").document(user.uid).setData(payload, merge: true)
 
-        state = .loggedIn(role: role)
+        state = .loggedIn(role: role, profileImg: DeviceIdentifier.shared.getProfileImage(user.uid))
     }
 
     func signOut() {
@@ -316,6 +313,9 @@ final class AuthGateViewModel: ObservableObject {
     
     func resetDevice() {
         KeychainHelper.shared.delete(account: "userID")
+        if let user = Auth.auth().currentUser {
+            DeviceIdentifier.shared.setProfileImage(user.uid, nil)
+        }
         try? Auth.auth().signOut()
     }
     
