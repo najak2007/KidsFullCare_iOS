@@ -12,6 +12,7 @@ import AuthenticationServices
 import CryptoKit
 import Combine
 import FirebaseAuth
+import PhotosUI
 
 struct SignUpView: UIViewRepresentable {
     @ObservedObject var userViewModel: UserViewModel
@@ -34,6 +35,7 @@ struct SignUpView: UIViewRepresentable {
         userContentController.add(context.coordinator, name: "generateLinkCode")
         userContentController.add(context.coordinator, name: "resetDevice")
         userContentController.add(context.coordinator, name: "inputFocus")
+        userContentController.add(context.coordinator, name: "pickProfileImage")
 
         config.userContentController = userContentController
 
@@ -112,10 +114,11 @@ struct SignUpView: UIViewRepresentable {
                 payload["name"] = name
             case .loginCancel:
                 payload["status"] = "loginCancel"
-            case .loggedIn(let role):
+            case .loggedIn(let role, let profileImg):
                 payload["status"] = "loggedIn"
                 payload["role"] = role
                 payload["name"] = DeviceIdentifier.shared.getUserForKey("displayName")
+                payload["imageBase64"] = profileImg
             case .signUp:
                 payload["status"] = "signUp"
             }
@@ -205,6 +208,8 @@ struct SignUpView: UIViewRepresentable {
                 if let fieldName = message.body as? String {
                     handleInputFocus(fieldName: fieldName)
                 }
+            case "pickProfileImage":
+                handlePickProfileImage()
             default:
                 break
             }
@@ -340,6 +345,125 @@ struct SignUpView: UIViewRepresentable {
             DispatchQueue.main.async { [weak self] in
                 self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
             }
+        }
+        
+        private func handlePickProfileImage() {
+            DispatchQueue.main.async { [weak self] in
+                guard let self, let rootVC = self.topViewController()
+                else {
+                    return
+                }
+                
+                let alert = UIAlertController(title: "프로필 사진", message: nil, preferredStyle: .actionSheet)
+                
+                alert.addAction(UIAlertAction(title: "카메라로 촬영", style: .default) { [weak self] _ in
+                    self?.presentCamera(from: rootVC)
+                })
+                
+                alert.addAction(UIAlertAction(title: "앨범에서 선택", style: .default) { [weak self] _ in
+                    self?.presentPhotoPicker(from: rootVC)
+                })
+                
+                alert.addAction(UIAlertAction(title: "이미지 삭제", style: .default) { [weak self] _ in
+                    self?.sendPickedImage(nil)
+                })
+                                
+                alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+                
+                if let popover = alert.popoverPresentationController {
+                    popover.sourceView = rootVC.view
+                    popover.sourceRect = CGRect(x: rootVC.view.bounds.midX, y: rootVC.view.bounds.midY, width: 0, height: 0)
+                    popover.permittedArrowDirections = []
+                }
+                
+                rootVC.present(alert, animated: true)
+            }
+        }
+        
+        private func topViewController() -> UIViewController? {
+            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                  let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController
+            else {
+                return nil
+            }
+            
+            var top = rootVC
+            while let presented = top.presentedViewController {
+                top = presented
+            }
+            return top
+        }
+        
+        private func presentCamera(from viewController: UIViewController) {
+            guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+                sendErrorToJS(provider: "profileImage", message: "카메라를 사용할 수 없습니다.", code: nil)
+                return
+            }
+            let picker = UIImagePickerController()
+            picker.sourceType = .camera
+            picker.delegate = self
+            viewController.present(picker, animated: true)
+        }
+ 
+        private func presentPhotoPicker(from viewController: UIViewController) {
+            var config = PHPickerConfiguration()
+            config.filter = .images
+            config.selectionLimit = 1
+            let picker = PHPickerViewController(configuration: config)
+            picker.delegate = self
+            viewController.present(picker, animated: true)
+        }
+ 
+        private func sendPickedImage(_ profileImage: UIImage?) {
+            guard let image = profileImage else {
+                let payload: [String: Any] = ["imageBase64": ""]
+
+                guard
+                    let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
+                    let jsonString = String(data: jsonData, encoding: .utf8)
+                else { return }
+     
+                let jsScript = """
+                    (function() {
+                        window.onNativeProfileImagePicked && window.onNativeProfileImagePicked(\(jsonString));
+                        return null;
+                    })();
+                    """
+                webView?.evaluateJavaScript(jsScript, completionHandler: { _ ,_  in
+                    if let uid = Auth.auth().currentUser?.uid {
+                        DeviceIdentifier.shared.setProfileImage(uid, nil)
+                    }
+                })
+                return
+            }
+            
+            // 원본 용량이 클 수 있으니 리사이즈 + JPEG 압축 후 base64로 인코딩합니다.
+            guard
+                let resized = image.resizedForUpload(maxDimension: 800),
+                let jpegData = resized.jpegData(compressionQuality: 0.7)
+            else {
+                sendErrorToJS(provider: "profileImage", message: "이미지를 처리하지 못했습니다.", code: nil)
+                return
+            }
+
+            
+            let payload: [String: Any] = ["imageBase64": jpegData.base64EncodedString()]
+            guard
+                let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
+                let jsonString = String(data: jsonData, encoding: .utf8)
+            else { return }
+ 
+            let jsScript = """
+                (function() {
+                    window.onNativeProfileImagePicked && window.onNativeProfileImagePicked(\(jsonString));
+                    return null;
+                })();
+                """
+            webView?.evaluateJavaScript(jsScript, completionHandler: { _, _ in
+                if let uid = Auth.auth().currentUser?.uid {
+                    DeviceIdentifier.shared.setProfileImage(uid, jpegData.base64EncodedString())
+                }
+            })
         }
         
         private func handleGenerateLinkCode() {
@@ -516,6 +640,59 @@ private extension SignUpView.Coordinator {
         let hashedData = SHA256.hash(data: inputData)
         return hashedData.compactMap { String(format: "%02x", $0) }.joined()
     }
+}
+
+extension SignUpView.Coordinator: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+    // 카메라 촬영 완료
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+        picker.dismiss(animated: true)
+        guard let image = (info[.editedImage] as? UIImage) ?? (info[.originalImage] as? UIImage)
+        else {
+            sendErrorToJS(provider: "profileImage", message: "이미지를 가져오지 못했습니다.", code: nil)
+            return
+        }
+        sendPickedImage(image)
+    }
+    
+    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        picker.dismiss(animated: true)
+    }
+}
+extension SignUpView.Coordinator: PHPickerViewControllerDelegate {
+    // 앨범에서 선택 완료
+    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        picker.dismiss(animated: true)
+
+        guard
+            let provider = results.first?.itemProvider,
+            provider.canLoadObject(ofClass: UIImage.self)
+        else {
+            return // 아무것도 선택 안 하고 닫은 경우
+        }
+
+        provider.loadObject(ofClass: UIImage.self) { [weak self] object, _ in
+            guard let image = object as? UIImage else { return }
+            DispatchQueue.main.async {
+                self?.sendPickedImage(image)
+            }
+        }
+    }
+}
+
+private extension UIImage {
+/// 긴 변 기준 maxDimension을 넘지 않도록 축소합니다 (업로드/전송 용량 절약).
+func resizedForUpload(maxDimension: CGFloat) -> UIImage? {
+    let longestSide = max(size.width, size.height)
+    guard longestSide > maxDimension else { return self }
+
+    let scale = maxDimension / longestSide
+    let newSize = CGSize(width: size.width * scale, height: size.height * scale)
+
+    let renderer = UIGraphicsImageRenderer(size: newSize)
+    return renderer.image { _ in
+        self.draw(in: CGRect(origin: .zero, size: newSize))
+    }
+}
 }
 
 extension WKWebView {
