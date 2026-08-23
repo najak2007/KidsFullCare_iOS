@@ -27,7 +27,7 @@ class DeviceIdentifier {
         return newUUID
     }
     
-    func setUserAppleID(_ appleCredential: ASAuthorizationAppleIDCredential, _ firebaseUID: String = "") -> String {
+    func setUserAppleID(_ appleCredential: ASAuthorizationAppleIDCredential, _ idToken: String = "", _ rawNonce: String = "", _ firebaseUID: String = "") -> String {
         guard let userInfo = self.getUserID()
         else {
             var displayName: String = ""
@@ -43,6 +43,8 @@ class DeviceIdentifier {
                 "ageRange" : appleCredential.userAgeRange.rawValue,
                 "firebaseUID" : firebaseUID,
                 "provider": "apple",
+                "idToken": idToken,
+                "rawNonce": rawNonce
             ]
             
             guard let jsonData = try? JSONSerialization.data(withJSONObject: userDict, options: .prettyPrinted),
@@ -128,5 +130,9 @@ class DeviceIdentifier {
         } else {
             UserDefaults.standard.removeObject(forKey: uid)
         }
+    }
+    
+    var faceID: Data? {
+        return UserDefaults.standard.data(forKey: Config.SAVED_STATE_KEY)
     }
 }

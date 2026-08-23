@@ -17,6 +17,8 @@ struct ContentView: View {
     @State private var showAlert = false
     @State private var password: String? = ""
     
+    @State private var pendingLink: (code: String, uid: String)?
+    
     init() {
         do {
             try Auth.auth().signOut()
@@ -42,9 +44,7 @@ struct ContentView: View {
                         webViewFirstLoadDone = true
                     })
                         .ignoresSafeArea() // 안전 영역 무시하고 꽉 채우기
-                        .onOpenURL { url in
-                            handleIncomingLink(url)
-                        }
+
                 }
             }
 #else
@@ -83,6 +83,18 @@ struct ContentView: View {
             }
             
         }
+        .onOpenURL { url in
+            handleIncomingLink(url)
+        }
+        // Universal Link(https://kidsfullcare.app/...)로 열렸을 때.
+        // SwiftUI App 라이프사이클에서는 AppDelegate의
+        // application(_:continue:restorationHandler:)가 호출되지 않고,
+        // 이 modifier로 들어옵니다. authGate.state와 무관하게 항상 반응하도록
+        // 최상위 ZStack에 걸어둡니다.
+        .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { userActivity in
+            guard let url = userActivity.webpageURL else { return }
+            handleIncomingLink(url)
+        }
         .alert("로그인 방법", isPresented: $showAlert) {
             Button("사용", role: .none) {
                 DispatchQueue.main.async {
@@ -110,7 +122,7 @@ struct ContentView: View {
     private func handleIncomingLink(_ url: URL) {
         guard
             let components = URLComponents(url: url, resolvingAgainstBaseURL: true),
-            components.path == "/link",
+            components.path == "/share",
             let code = components.queryItems?.first(where: { $0.name == "code" })?.value,
             let uid = components.queryItems?.first(where: { $0.name == "uid" })?.value
         else {
@@ -118,5 +130,11 @@ struct ContentView: View {
         }
  
         userViewModel.webView?.notifyIncomingLinkCode(code: code, uid: uid)
+    }
+    
+    private func flushPendingLinkIfNeeded() {
+        guard let pending = pendingLink, let webView = userViewModel.webView else { return }
+        webView.notifyIncomingLinkCode(code: pending.code, uid: pending.uid)
+        pendingLink = nil
     }
 }

@@ -20,9 +20,6 @@ class FaceIDManager: ObservableObject {
     @Published var isFaceIDChanged: Bool = false
     @Published var isFaceIDAuthSuccess: Bool = false
     
-    private let SAVED_STATE_KEY = "SavedBiometricDomainState"
-    private let USE_BIOMETRIC_KEY = "UseBiometricAuthentication"
-    
     func authenticate(_ password: String = "", completion: @escaping (Bool, Data?) -> Void) {
         let context = LAContext()
         var error: NSError?
@@ -35,7 +32,7 @@ class FaceIDManager: ObservableObject {
                     if success {
                         if let currentState = context.domainState.biometry.stateHash {
                             let defaults = UserDefaults.standard
-                            if let savedData = defaults.data(forKey: self.SAVED_STATE_KEY) {
+                            if let savedData = defaults.data(forKey: Config.SAVED_STATE_KEY) {
                                 if savedData != currentState {
                                     self.isFaceIDChanged = true
                                     DeviceIdentifier.shared.setUserPassword(savedData, nil)
@@ -47,7 +44,7 @@ class FaceIDManager: ObservableObject {
                                     return completion(true, currentState)
                                 }
                             } else {
-                                defaults.set(currentState, forKey: self.SAVED_STATE_KEY)
+                                defaults.set(currentState, forKey: Config.SAVED_STATE_KEY)
                                 if !password.isEmpty {
                                     DeviceIdentifier.shared.setUserPassword(currentState, password)
                                 }

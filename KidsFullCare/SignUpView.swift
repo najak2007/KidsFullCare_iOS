@@ -203,7 +203,9 @@ struct SignUpView: UIViewRepresentable {
             case "generateLinkCode":
                 handleGenerateLinkCode()
             case "resetDevice":
-                authGate?.resetDevice()
+                Task {
+                    try await authGate?.resetDevice()
+                }
             case "inputFocus":
                 if let fieldName = message.body as? String {
                     handleInputFocus(fieldName: fieldName)
@@ -244,6 +246,18 @@ struct SignUpView: UIViewRepresentable {
             controller.delegate = self
             controller.presentationContextProvider = self
             controller.performRequests()
+        }
+        
+        private func resetDeviceForAuth() {
+            if let provider = DeviceIdentifier.shared.getUserForKey("provider") {
+                if provider == "apple" {
+                    
+                } else if provider == "google" {
+                    
+                } else if provider == "email" {
+                    
+                }
+            }
         }
 
         // MARK: - Google Sign In (자리만 마련. GoogleSignIn SDK 붙이면 여기서 authGate.signInWithGoogle 호출)
