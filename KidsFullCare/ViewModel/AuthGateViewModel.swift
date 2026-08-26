@@ -35,7 +35,7 @@ enum AppleAuthState: Equatable {
 final class AuthGateViewModel: ObservableObject {
     @Published private(set) var state: AuthGateState = .checking
     @Published var isAuthenticated: AppleAuthState = .authInit
-    @Published var isBioAuthReq : Bool = false
+    @Published var isReseting : Bool = false
     
     private nonisolated(unsafe) var authListenerHandle: AuthStateDidChangeListenerHandle?
     private let db = Firestore.firestore()
@@ -63,6 +63,7 @@ final class AuthGateViewModel: ObservableObject {
                 print("Error signing out: %@", signOutError)
 #endif
             }
+            self.isUseBiometricAck = .사용여부_질문필요
             self.state = .signUp
             return
         }
@@ -77,7 +78,7 @@ final class AuthGateViewModel: ObservableObject {
 #endif
                     case .revoked, .notFound:
                         Task { @MainActor in
-                            self.resetDevice()
+                            try await self.resetDevice()
                         }
                     default: break
                     }
@@ -93,12 +94,17 @@ final class AuthGateViewModel: ObservableObject {
     }
 
     private func handleAuthChange(user: FirebaseAuth.User?) async {
+        if isReseting {
+            return
+        }
+
         guard let user else {
             checkAppleSignInStatus { appleAuthState in
                 Task {
                     if appleAuthState == .authorized {
                         self.state = self.checkIsReturningUser()
                     } else {
+                        self.isUseBiometricAck = .사용여부_질문필요
                         self.state = .signUp
                     }
                 }
@@ -134,6 +140,7 @@ final class AuthGateViewModel: ObservableObject {
               let _ = userInfo["firebaseUID"] as? String,
               let provider = userInfo["provider"] as? String
         else {
+            self.isUseBiometricAck = .사용여부_질문필요
             return .signUp
         }
         return .loggedOut(returningUser: true, provider: provider)
@@ -215,7 +222,7 @@ final class AuthGateViewModel: ObservableObject {
         // Firebase 로그인 (최초 접속 시 자동 회원가입)
         let result = try await Auth.auth().signIn(with: credential)
         
-        let displayName = DeviceIdentifier.shared.setUserAppleID(appleCredential, result.user.uid)
+        let displayName = DeviceIdentifier.shared.setUserAppleID(appleCredential, identityToken, rawNonce, result.user.uid)
         
         try await db.collection("users").document(result.user.uid).setData([
             "uid": result.user.uid,
@@ -283,6 +290,33 @@ final class AuthGateViewModel: ObservableObject {
         return code
     }
     
+    func fetchStudentForCodeWithUid(code: String, uid: String, parentUid: String) async throws -> String? {
+        
+        let createCodeTime = Date().addingTimeInterval(-130)
+        
+        let snapshot = try await db.collection("linkCodes")
+            .whereField("studentUid", isEqualTo: uid)
+            .whereField("createdAt", isGreaterThan: createCodeTime)
+            .getDocuments()
+
+        guard let document = snapshot.documents.first,
+              let data = document.data() as? [String: String],
+              let studentUid = data["studentUid"]
+        else {
+#if DEBUG
+            print("동일한 코드를 찾지 못했습니다.")
+#endif
+            return nil
+        }
+        
+        let documentRef = db.collection("linkCodes").document(document.documentID)
+        try await documentRef.updateData([
+            "parent": FieldValue.arrayUnion([parentUid])
+        ])
+
+        return studentUid
+    }
+    
     private static func randomSixDigitCode() -> String {
         String(Int.random(in: 100_000...999_999))
     }
@@ -311,12 +345,87 @@ final class AuthGateViewModel: ObservableObject {
         // 리스너가 자동으로 .loggedOut으로 바꿔줍니다.
     }
     
-    func resetDevice() {
-        KeychainHelper.shared.delete(account: "userID")
-        if let user = Auth.auth().currentUser {
-            DeviceIdentifier.shared.setProfileImage(user.uid, nil)
+    func resetDevice() async throws {
+        
+        isReseting = true
+        
+        if let provider = DeviceIdentifier.shared.getUserForKey("provider") {
+            if provider == "apple" {
+                if let idToken = DeviceIdentifier.shared.getUserForKey("idToken"),
+                   let rawNonce = DeviceIdentifier.shared.getUserForKey("rawNonce") {
+                    let credential = OAuthProvider.credential(
+                        providerID: .apple,
+                        idToken: idToken,
+                        rawNonce: rawNonce
+                    )
+                    try await Auth.auth().signIn(with: credential)
+                    if let user = Auth.auth().currentUser {
+                        DeviceIdentifier.shared.setProfileImage(user.uid, nil)
+                    }
+                    if let uid = Auth.auth().currentUser?.uid {
+                        try await Firestore.firestore().collection("users").document(uid).delete()
+                    }
+                    try await Auth.auth().currentUser?.reauthenticate(with: credential)
+
+                    do {
+                        try await Auth.auth().currentUser?.delete()
+                    } catch {
+#if DEBUG
+                        print("삭제 실패 :", error.localizedDescription)
+#endif
+                        isReseting = false
+                    }
+
+                    KeychainHelper.shared.delete(account: "userID")
+
+                    try? Auth.auth().signOut()
+                    self.isUseBiometricAck = .사용여부_질문필요
+                    isReseting = false
+                    state = .signUp
+                }
+            } else if provider == "google" {
+                
+            } else if provider == "email" {
+                if let faceID = DeviceIdentifier.shared.faceID,
+                   let password = DeviceIdentifier.shared.getUserPassword(faceID),
+                   let email = DeviceIdentifier.shared.getUserForKey("email") {
+             
+                    // 방금 로그인했으니 이미 "최근 인증됨" 상태입니다.
+                    // 로그인 직후 다시 reauthenticate하는 건 중복이라 뺐습니다.
+                    try await Auth.auth().signIn(withEmail: email, password: password)
+             
+                    guard let user = Auth.auth().currentUser else { return }
+                    let uid = user.uid
+             
+                    DeviceIdentifier.shared.setProfileImage(uid, nil)
+             
+                    // 1) Firestore 문서 삭제 (계정이 아직 살아있는 상태에서 먼저)
+                    try await Firestore.firestore().collection("users").document(uid).delete()
+             
+                    // 2) Auth 계정 삭제
+                    //    여기서 실패하면 절대로 아래(Keychain 삭제/로그아웃/state 전환)를
+                    //    실행하면 안 됩니다. 계정은 Firebase에 그대로 남아있는데
+                    //    앱만 "탈퇴 완료"인 것처럼 굴면, 다음에 로그인 시도 시
+                    //    Firestore 문서는 없고 Auth 계정만 살아있는 불일치 상태가 됩니다.
+                    do {
+                        try await user.delete()
+                    } catch {
+            #if DEBUG
+                        print("Auth 계정 삭제 실패:", error.localizedDescription)
+            #endif
+                        isReseting = false
+                        throw error // 상위 호출부(에러 알림 UI 등)로 실패를 전달합니다.
+                    }
+             
+                    // 여기까지 왔다는 건 Firestore + Auth 삭제가 전부 확실히 성공했다는 뜻입니다.
+                    KeychainHelper.shared.delete(account: "userID")
+                    try? Auth.auth().signOut()
+                    self.isUseBiometricAck = .사용여부_질문필요
+                    isReseting = false
+                    state = .signUp
+                }
+            }
         }
-        try? Auth.auth().signOut()
     }
     
     var isUseBiometricAck: BiometricUseState {
