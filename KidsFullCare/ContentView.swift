@@ -130,6 +130,8 @@ struct ContentView: View {
         }
  
         userViewModel.webView?.notifyIncomingLinkCode(code: code, uid: uid)
+        
+        
     }
     
     private func flushPendingLinkIfNeeded() {

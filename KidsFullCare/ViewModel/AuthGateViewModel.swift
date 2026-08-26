@@ -290,6 +290,33 @@ final class AuthGateViewModel: ObservableObject {
         return code
     }
     
+    func fetchStudentForCodeWithUid(code: String, uid: String, parentUid: String) async throws -> String? {
+        
+        let createCodeTime = Date().addingTimeInterval(-130)
+        
+        let snapshot = try await db.collection("linkCodes")
+            .whereField("studentUid", isEqualTo: uid)
+            .whereField("createdAt", isGreaterThan: createCodeTime)
+            .getDocuments()
+
+        guard let document = snapshot.documents.first,
+              let data = document.data() as? [String: String],
+              let studentUid = data["studentUid"]
+        else {
+#if DEBUG
+            print("동일한 코드를 찾지 못했습니다.")
+#endif
+            return nil
+        }
+        
+        let documentRef = db.collection("linkCodes").document(document.documentID)
+        try await documentRef.updateData([
+            "parent": FieldValue.arrayUnion([parentUid])
+        ])
+
+        return studentUid
+    }
+    
     private static func randomSixDigitCode() -> String {
         String(Int.random(in: 100_000...999_999))
     }
