@@ -292,8 +292,6 @@ final class AuthGateViewModel: ObservableObject {
         return code
     }
     
-
-    
     func fetchStudentForCodeWithUid(code: String, uid: String, parentUid: String) async throws -> String? {
         let documentRef = db.collection("linkCodes").document(code)
         let document = try await documentRef.getDocument()

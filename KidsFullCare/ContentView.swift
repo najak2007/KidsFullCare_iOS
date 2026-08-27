@@ -145,7 +145,9 @@ struct ContentView: View {
         }
 
         Task { @MainActor in
-            try await authGateViewModel.fetchStudentForCodeWithUid(code: pending.code, uid: pending.uid, parentUid: parentUid)
+            if let familyUid = try await authGateViewModel.fetchStudentForCodeWithUid(code: pending.code, uid: pending.uid, parentUid: parentUid) {
+                userViewModel.addFamilyForUid(currentUid: parentUid, newUid: familyUid)
+            }
         }
         
         
