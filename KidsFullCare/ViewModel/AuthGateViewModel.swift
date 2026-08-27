@@ -13,6 +13,7 @@ import FirebaseFirestore
 import Combine
 
 var bioAuthRequest = PassthroughSubject<String, Never>()
+var loginSuccess: PassthroughSubject<Bool, Never> = .init()
 
 enum AuthGateState: Equatable {
     case checking                                   // 최초 로그인 상태 확인 중 (스플래시)
@@ -120,6 +121,7 @@ final class AuthGateViewModel: ObservableObject {
             if let role = snapshot.data()?["role"] as? String,
                !role.isEmpty {
                 state = .loggedIn(role: role, profileImg: DeviceIdentifier.shared.getProfileImage(user.uid))
+                loginSuccess.send(true)
             } else {
                 // 로그인은 됐는데 role 문서가 없음 → 역할 선택을 마저 해야 함
                 // (예: 로그인 직후 앱이 종료되어 역할 선택을 못 마친 경우)
@@ -290,26 +292,32 @@ final class AuthGateViewModel: ObservableObject {
         return code
     }
     
-    func fetchStudentForCodeWithUid(code: String, uid: String, parentUid: String) async throws -> String? {
-        
-        let createCodeTime = Date().addingTimeInterval(-130)
-        
-        let snapshot = try await db.collection("linkCodes")
-            .whereField("studentUid", isEqualTo: uid)
-            .whereField("createdAt", isGreaterThan: createCodeTime)
-            .getDocuments()
 
-        guard let document = snapshot.documents.first,
-              let data = document.data() as? [String: String],
-              let studentUid = data["studentUid"]
+    
+    func fetchStudentForCodeWithUid(code: String, uid: String, parentUid: String) async throws -> String? {
+        let documentRef = db.collection("linkCodes").document(code)
+        let document = try await documentRef.getDocument()
+
+        guard document.exists,
+              let data = document.data(),
+              let studentUid = data["studentUid"] as? String,
+              studentUid == uid,
+              let createdAt = data["createdAt"] as? Timestamp
         else {
 #if DEBUG
             print("동일한 코드를 찾지 못했습니다.")
 #endif
             return nil
         }
-        
-        let documentRef = db.collection("linkCodes").document(document.documentID)
+
+        let expirationThreshold = Date().addingTimeInterval(-130) // 2분 + 10초 여유
+        guard createdAt.dateValue() > expirationThreshold else {
+    #if DEBUG
+            print("코드가 만료되었습니다.")
+    #endif
+            return nil
+        }
+
         try await documentRef.updateData([
             "parent": FieldValue.arrayUnion([parentUid])
         ])
@@ -344,11 +352,35 @@ final class AuthGateViewModel: ObservableObject {
         try? Auth.auth().signOut()
         // 리스너가 자동으로 .loggedOut으로 바꿔줍니다.
     }
+
+    func autoSignIn() async throws {
+        guard  let userId = Auth.auth().currentUser?.uid
+        else {
+            if let provider = DeviceIdentifier.shared.getUserForKey("provider") {
+                if provider == "apple" {
+                    if let idToken = DeviceIdentifier.shared.getUserForKey("idToken"),
+                       let rawNonce = DeviceIdentifier.shared.getUserForKey("rawNonce") {
+                        let credential = OAuthProvider.credential(
+                            providerID: .apple,
+                            idToken: idToken,
+                            rawNonce: rawNonce
+                        )
+                        try await Auth.auth().signIn(with: credential)
+                    }
+                } else if provider == "email" {
+                    if let faceID = DeviceIdentifier.shared.faceID,
+                       let password = DeviceIdentifier.shared.getUserPassword(faceID),
+                       let email = DeviceIdentifier.shared.getUserForKey("email") {
+                            try await Auth.auth().signIn(withEmail: email, password: password)
+                        }
+                }
+            }
+            return
+        }
+    }
     
     func resetDevice() async throws {
-        
         isReseting = true
-        
         if let provider = DeviceIdentifier.shared.getUserForKey("provider") {
             if provider == "apple" {
                 if let idToken = DeviceIdentifier.shared.getUserForKey("idToken"),

@@ -15,6 +15,7 @@ struct ContentView: View {
     @StateObject private var faceIDManager = FaceIDManager()
     @State private var webViewFirstLoadDone = false
     @State private var showAlert = false
+    @State private var showRoleError = false
     @State private var password: String? = ""
     
     @State private var pendingLink: (code: String, uid: String)?
@@ -33,8 +34,6 @@ struct ContentView: View {
         ZStack {
             Color(.systemBackground)
                 .ignoresSafeArea()
-
-#if true
             if authGateViewModel.state == .checking {
                 ProgressView("확인 중....")
                     .background(Color(.systemBackground))
@@ -47,27 +46,6 @@ struct ContentView: View {
 
                 }
             }
-#else
-            if authGateViewModel.state == .checking {
-                ProgressView("확인 중....")
-                    .background(Color(.systemBackground))
-            } else if authGateViewModel.state == .loggedIn(role: "parent") || authGateViewModel.state == .loggedIn(role: "student") {
-                
-                MainView(userViewModel: userViewModel, authGate: authGateViewModel)
-                
-            } else {
-                if let url = URL(string: Config.KIDS_FULL_CARE_URL) {
-                    SignUpView(userViewModel: userViewModel, authGate: authGateViewModel, url: url, onFirstLoad: {
-                        webViewFirstLoadDone = true
-                    })
-                        .ignoresSafeArea() // 안전 영역 무시하고 꽉 채우기
-                        .onOpenURL { url in
-                            handleIncomingLink(url)
-                        }
-                }
-            }
-#endif
-            
             if(!webViewFirstLoadDone) {
                 Color(uiColor: .systemBackground)
                     .ignoresSafeArea()
@@ -83,14 +61,16 @@ struct ContentView: View {
             }
             
         }
+        .onReceive(loginSuccess) { isLogin in
+            if isLogin, pendingLink != nil {
+                DispatchQueue.main.async {
+                    self.flushPendingLinkIfNeeded()
+                }
+            }
+        }
         .onOpenURL { url in
             handleIncomingLink(url)
         }
-        // Universal Link(https://kidsfullcare.app/...)로 열렸을 때.
-        // SwiftUI App 라이프사이클에서는 AppDelegate의
-        // application(_:continue:restorationHandler:)가 호출되지 않고,
-        // 이 modifier로 들어옵니다. authGate.state와 무관하게 항상 반응하도록
-        // 최상위 ZStack에 걸어둡니다.
         .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { userActivity in
             guard let url = userActivity.webpageURL else { return }
             handleIncomingLink(url)
@@ -115,6 +95,15 @@ struct ContentView: View {
         } message: {
             Text("생체 인증을 통해 로그인하시겠습니까?")
         }
+        .alert("역할 오류", isPresented: $showRoleError) {
+            Button("확인", role: .none) {
+                DispatchQueue.main.async {
+                    self.showRoleError.toggle()
+                }
+            }
+        } message: {
+            Text("해당 계정은 부모님이 아닙니다.")
+        }
     }
     
     /// https://kidsfullcare.app/link?code=123456&uid=xxx 형태의 유니버설 링크를 받아서
@@ -128,14 +117,38 @@ struct ContentView: View {
         else {
             return
         }
- 
-        userViewModel.webView?.notifyIncomingLinkCode(code: code, uid: uid)
-        
-        
+
+        if authGateViewModel.state == .loggedIn(role: "parent", profileImg: "") {
+            pendingLink = nil
+
+            guard let parentUid = Auth.auth().currentUser?.uid
+            else {
+                pendingLink = (code, uid)
+                return
+            }
+            pendingLink = (code, uid)
+            flushPendingLinkIfNeeded()
+            return
+        } else if authGateViewModel.state == .loggedIn(role: "student", profileImg: "") {
+            self.showRoleError.toggle()
+            return
+        }
+        pendingLink = (code, uid)
     }
     
     private func flushPendingLinkIfNeeded() {
         guard let pending = pendingLink, let webView = userViewModel.webView else { return }
+        
+        guard let parentUid = Auth.auth().currentUser?.uid
+        else {
+            return
+        }
+
+        Task { @MainActor in
+            try await authGateViewModel.fetchStudentForCodeWithUid(code: pending.code, uid: pending.uid, parentUid: parentUid)
+        }
+        
+        
         webView.notifyIncomingLinkCode(code: pending.code, uid: pending.uid)
         pendingLink = nil
     }
