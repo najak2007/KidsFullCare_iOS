@@ -11,6 +11,7 @@ import RealmSwift
 import WebKit
 internal import Realm
 import FirebaseAuth
+import FirebaseFirestore
 
 
 class UserViewModel: ObservableObject {
@@ -20,6 +21,9 @@ class UserViewModel: ObservableObject {
     
     @Published var deviceUUID: String = ""
     @Published var pushToken: String = ""
+    
+    private let db = Firestore.firestore()
+    
     var name: String {
         get {
             return DeviceIdentifier.shared.getUserForKey("displayName") ?? ""
@@ -50,6 +54,16 @@ class UserViewModel: ObservableObject {
                 print("JS 호출 에러 : \(error.localizedDescription)")
                 #endif
             }
+        }
+    }
+    
+    func addFamilyForUid(currentUid: String, newUid: String) {
+        let documentRef = db.collection("users").document(currentUid)
+        
+        Task { @MainActor in
+            try await documentRef.updateData([
+                "family": FieldValue.arrayUnion([newUid])
+            ])
         }
     }
 }
