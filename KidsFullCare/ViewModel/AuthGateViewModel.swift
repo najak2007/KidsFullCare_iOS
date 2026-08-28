@@ -292,7 +292,35 @@ final class AuthGateViewModel: ObservableObject {
         return code
     }
     
-    func fetchStudentForCodeWithUid(code: String, uid: String, parentUid: String) async throws -> String? {
+    func addFamily(familyUid: String, familyName: String?) async throws -> Bool {
+        guard let user = Auth.auth().currentUser
+        else {
+            return false
+        }
+        
+        let familyInfo: String = "\(familyUid):\(familyName ?? "")"
+        
+        try await db.collection("users").document(user.uid).updateData([
+            "family": FieldValue.arrayUnion([familyInfo])
+        ])
+        return true
+    }
+    
+    func fetchStudentInfo(studentUid: String) async throws -> String? {
+        let documentRef = db.collection("users").document(studentUid)
+        let document = try await documentRef.getDocument()
+        
+        guard document.exists,
+              let data = document.data(),
+              let displayName = data["displayName"] as? String
+        else {
+            return nil
+        }
+            
+        return displayName
+    }
+    
+    func fetchStudentForCodeWithUid(code: String, uid: String, parentUid: String) async throws -> (Bool, String)? {
         let documentRef = db.collection("linkCodes").document(code)
         let document = try await documentRef.getDocument()
 
@@ -300,27 +328,36 @@ final class AuthGateViewModel: ObservableObject {
               let data = document.data(),
               let studentUid = data["studentUid"] as? String,
               studentUid == uid,
-              let createdAt = data["createdAt"] as? Timestamp
+              let createdAt = data["createdAt"] as? Timestamp,
+              let used = data["used"] as? Bool
         else {
 #if DEBUG
             print("동일한 코드를 찾지 못했습니다.")
 #endif
-            return nil
+            return (false, "동일한 코드를 찾지 못했습니다.")
         }
 
         let expirationThreshold = Date().addingTimeInterval(-130) // 2분 + 10초 여유
         guard createdAt.dateValue() > expirationThreshold else {
-    #if DEBUG
+#if DEBUG
             print("코드가 만료되었습니다.")
-    #endif
-            return nil
+#endif
+            return (false, "코드가 만료되었습니다.")
         }
 
+        if used {
+#if DEBUG
+            print("이미 사용된 코드입니다.")
+#endif
+            return (false, "이미 사용된 코드입니다.")
+        }
+                
         try await documentRef.updateData([
-            "parent": FieldValue.arrayUnion([parentUid])
+            "parent": FieldValue.arrayUnion([parentUid]),
+            "used": true
         ])
 
-        return studentUid
+        return (true, studentUid)
     }
     
     private static func randomSixDigitCode() -> String {
@@ -345,14 +382,14 @@ final class AuthGateViewModel: ObservableObject {
 
         state = .loggedIn(role: role, profileImg: DeviceIdentifier.shared.getProfileImage(user.uid))
     }
-
+    
     func signOut() {
         try? Auth.auth().signOut()
         // 리스너가 자동으로 .loggedOut으로 바꿔줍니다.
     }
 
     func autoSignIn() async throws {
-        guard  let userId = Auth.auth().currentUser?.uid
+        guard  let _ = Auth.auth().currentUser?.uid
         else {
             if let provider = DeviceIdentifier.shared.getUserForKey("provider") {
                 if provider == "apple" {

@@ -36,6 +36,7 @@ struct SignUpView: UIViewRepresentable {
         userContentController.add(context.coordinator, name: "resetDevice")
         userContentController.add(context.coordinator, name: "inputFocus")
         userContentController.add(context.coordinator, name: "pickProfileImage")
+        userContentController.add(context.coordinator, name: "addFamilyForUID")
 
         config.userContentController = userContentController
 
@@ -212,6 +213,10 @@ struct SignUpView: UIViewRepresentable {
                 }
             case "pickProfileImage":
                 handlePickProfileImage()
+            case "addFamilyForUID":
+                if let addUid = message.body as? String {
+                    handleAddFamily(uid: addUid)
+                }
             default:
                 break
             }
@@ -358,6 +363,38 @@ struct SignUpView: UIViewRepresentable {
             
             DispatchQueue.main.async { [weak self] in
                 self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
+            }
+        }
+        
+        private func handleAddFamily(uid: String) {
+            var familyName: String? = nil
+
+            Task {
+                familyName = try await authGate?.fetchStudentInfo(studentUid: uid)
+
+                if let _ = try await authGate?.addFamily(familyUid: uid, familyName: familyName) {
+                    let payload: [String: Any] = [
+                        "addUserName": familyName ?? "",
+                        "addUserUid": uid
+                    ]
+                    
+                    guard let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
+                          let jsonString = String(data: jsonData, encoding: .utf8)
+                    else {
+                        return
+                    }
+                    
+                    let jsScript = """
+                        (function() {
+                            window.onNativeAddFamilyForName && window.onNativeAddFamilyForName(\(jsonString));
+                            return null;
+                        })();
+                        """
+                    
+                    DispatchQueue.main.async { [weak self] in
+                        self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
+                    }
+                }
             }
         }
         
@@ -712,8 +749,8 @@ func resizedForUpload(maxDimension: CGFloat) -> UIImage? {
 extension WKWebView {
     /// QR(유니버설 링크)로 앱이 열렸을 때, code/uid를 JS로 전달합니다.
     /// StudentLinkScreen 등에서 window.onNativeIncomingLinkCode로 받으면 됩니다.
-    func notifyIncomingLinkCode(code: String, uid: String) {
-        let payload: [String: Any] = ["code": code, "uid": uid]
+    func notifyIncomingLinkCode(uid: String) {
+        let payload: [String: Any] = ["uid": uid]
         guard
             let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
             let jsonString = String(data: jsonData, encoding: .utf8)

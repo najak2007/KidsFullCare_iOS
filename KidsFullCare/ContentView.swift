@@ -16,6 +16,8 @@ struct ContentView: View {
     @State private var webViewFirstLoadDone = false
     @State private var showAlert = false
     @State private var showRoleError = false
+    @State private var showMatchError = false
+    @State private var matchErrorDescription: String? = nil
     @State private var password: String? = ""
     
     @State private var pendingLink: (code: String, uid: String)?
@@ -104,6 +106,15 @@ struct ContentView: View {
         } message: {
             Text("해당 계정은 부모님이 아닙니다.")
         }
+        .alert("인증 오류", isPresented: $showMatchError) {
+            Button("확인", role: .none) {
+                DispatchQueue.main.async {
+                    self.showMatchError.toggle()
+                }
+            }
+        } message: {
+            Text(self.matchErrorDescription ?? "인증 오류가 발생했습니다.")
+        }
     }
     
     /// https://kidsfullcare.app/link?code=123456&uid=xxx 형태의 유니버설 링크를 받아서
@@ -117,11 +128,16 @@ struct ContentView: View {
         else {
             return
         }
+        
+        guard let userUid = Auth.auth().currentUser?.uid
+        else {
+            return
+        }
 
-        if authGateViewModel.state == .loggedIn(role: "parent", profileImg: "") {
+        if authGateViewModel.state == .loggedIn(role: "parent", profileImg: DeviceIdentifier.shared.getProfileImage(userUid)) {
             pendingLink = nil
 
-            guard let parentUid = Auth.auth().currentUser?.uid
+            guard let _ = Auth.auth().currentUser?.uid
             else {
                 pendingLink = (code, uid)
                 return
@@ -129,7 +145,7 @@ struct ContentView: View {
             pendingLink = (code, uid)
             flushPendingLinkIfNeeded()
             return
-        } else if authGateViewModel.state == .loggedIn(role: "student", profileImg: "") {
+        } else if authGateViewModel.state == .loggedIn(role: "student", profileImg: DeviceIdentifier.shared.getProfileImage(userUid)) {
             self.showRoleError.toggle()
             return
         }
@@ -145,13 +161,16 @@ struct ContentView: View {
         }
 
         Task { @MainActor in
-            if let familyUid = try await authGateViewModel.fetchStudentForCodeWithUid(code: pending.code, uid: pending.uid, parentUid: parentUid) {
-                userViewModel.addFamilyForUid(currentUid: parentUid, newUid: familyUid)
+            if let matchUid: (Bool, String) = try await authGateViewModel.fetchStudentForCodeWithUid(code: pending.code, uid: pending.uid, parentUid: parentUid) {
+                if matchUid.0 {
+//                    userViewModel.addFamilyForUid(currentUid: parentUid, newUid: matchUid.1)
+                    webView.notifyIncomingLinkCode(uid: pending.uid)
+                } else {
+                    matchErrorDescription = matchUid.1
+                    showMatchError.toggle()
+                }
             }
         }
-        
-        
-        webView.notifyIncomingLinkCode(code: pending.code, uid: pending.uid)
         pendingLink = nil
     }
 }
