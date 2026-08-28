@@ -214,8 +214,10 @@ struct SignUpView: UIViewRepresentable {
             case "pickProfileImage":
                 handlePickProfileImage()
             case "addFamilyForUID":
-                if let addUid = message.body as? String {
-                    handleAddFamily(uid: addUid)
+                if let body = message.body as? [String: Any],
+                   let addUid = body["uid"] as? String,
+                   let addName = body["name"] as? String {
+                    handleAddFamily(uid: addUid, name: addName)
                 }
             default:
                 break
@@ -366,15 +368,11 @@ struct SignUpView: UIViewRepresentable {
             }
         }
         
-        private func handleAddFamily(uid: String) {
-            var familyName: String? = nil
-
+        private func handleAddFamily(uid: String, name: String) {
             Task {
-                familyName = try await authGate?.fetchStudentInfo(studentUid: uid)
-
-                if let _ = try await authGate?.addFamily(familyUid: uid, familyName: familyName) {
+                if let _ = try await authGate?.addFamily(familyUid: uid, familyName: name) {
                     let payload: [String: Any] = [
-                        "addUserName": familyName ?? "",
+                        "addUserName": name,
                         "addUserUid": uid
                     ]
                     
@@ -522,9 +520,9 @@ struct SignUpView: UIViewRepresentable {
                 do {
                     let code = try await authGate?.generateStudentLinkCode() ?? ""
                     let uid = Auth.auth().currentUser?.uid
-                    sendLinkCodeResult(code: code, uid: uid, errorMessage: nil)
+                    sendLinkCodeResult(code: code, uid: uid, name: DeviceIdentifier.shared.getUserForKey("displayName"), errorMessage: nil)
                 } catch {
-                    sendLinkCodeResult(code: nil, uid: nil, errorMessage: "코드 생성 중 오류가 발생했습니다.")
+                    sendLinkCodeResult(code: nil, uid: nil, name: nil, errorMessage: "코드 생성 중 오류가 발생했습니다.")
                 }
             }
         }
@@ -532,7 +530,7 @@ struct SignUpView: UIViewRepresentable {
         /// roleSelect/emailSignIn 등과 콜백 이름이 겹치지 않도록 전용 콜백을 씁니다.
         /// (SignUp.jsx가 window.onNativeSignInError를 이미 쓰고 있어서, 그걸 재사용하면
         ///  StudentLinkScreen이 열려있는 동안 SignUp.jsx의 에러 핸들러를 덮어써버립니다.)
-        private func sendLinkCodeResult(code: String?, uid: String?, errorMessage: String?) {
+        private func sendLinkCodeResult(code: String?, uid: String?, name: String?, errorMessage: String?) {
             var payload: [String: Any] = [:]
             if let code {
                 payload["code"] = code
@@ -540,6 +538,10 @@ struct SignUpView: UIViewRepresentable {
             
             if let uid {
                 payload["uid"] = uid
+            }
+            
+            if let name {
+                payload["name"] = name
             }
             
             if let errorMessage {
@@ -749,8 +751,8 @@ func resizedForUpload(maxDimension: CGFloat) -> UIImage? {
 extension WKWebView {
     /// QR(유니버설 링크)로 앱이 열렸을 때, code/uid를 JS로 전달합니다.
     /// StudentLinkScreen 등에서 window.onNativeIncomingLinkCode로 받으면 됩니다.
-    func notifyIncomingLinkCode(uid: String) {
-        let payload: [String: Any] = ["uid": uid]
+    func notifyIncomingLinkCode(uid: String, name: String) {
+        let payload: [String: Any] = ["uid": uid, "name": name]
         guard
             let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
             let jsonString = String(data: jsonData, encoding: .utf8)

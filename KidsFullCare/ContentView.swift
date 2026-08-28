@@ -20,7 +20,7 @@ struct ContentView: View {
     @State private var matchErrorDescription: String? = nil
     @State private var password: String? = ""
     
-    @State private var pendingLink: (code: String, uid: String)?
+    @State private var pendingLink: (code: String, uid: String, name: String)?
     
     init() {
         do {
@@ -124,7 +124,8 @@ struct ContentView: View {
             let components = URLComponents(url: url, resolvingAgainstBaseURL: true),
             components.path == "/share",
             let code = components.queryItems?.first(where: { $0.name == "code" })?.value,
-            let uid = components.queryItems?.first(where: { $0.name == "uid" })?.value
+            let uid = components.queryItems?.first(where: { $0.name == "uid" })?.value,
+            let name = components.queryItems?.first(where: { $0.name == "name" })?.value
         else {
             return
         }
@@ -139,17 +140,17 @@ struct ContentView: View {
 
             guard let _ = Auth.auth().currentUser?.uid
             else {
-                pendingLink = (code, uid)
+                pendingLink = (code, uid, name)
                 return
             }
-            pendingLink = (code, uid)
+            pendingLink = (code, uid, name)
             flushPendingLinkIfNeeded()
             return
         } else if authGateViewModel.state == .loggedIn(role: "student", profileImg: DeviceIdentifier.shared.getProfileImage(userUid)) {
             self.showRoleError.toggle()
             return
         }
-        pendingLink = (code, uid)
+        pendingLink = (code, uid, name)
     }
     
     private func flushPendingLinkIfNeeded() {
@@ -163,8 +164,7 @@ struct ContentView: View {
         Task { @MainActor in
             if let matchUid: (Bool, String) = try await authGateViewModel.fetchStudentForCodeWithUid(code: pending.code, uid: pending.uid, parentUid: parentUid) {
                 if matchUid.0 {
-//                    userViewModel.addFamilyForUid(currentUid: parentUid, newUid: matchUid.1)
-                    webView.notifyIncomingLinkCode(uid: pending.uid)
+                    webView.notifyIncomingLinkCode(uid: pending.uid, name: pending.name)
                 } else {
                     matchErrorDescription = matchUid.1
                     showMatchError.toggle()
