@@ -32,6 +32,12 @@ enum AppleAuthState: Equatable {
     case unKnown                        // 알수 없는 상태 또는 오류 발생
 }
 
+enum AddFamilyState: Equatable {
+    case 추가
+    case 중복
+    case 에러
+}
+
 @MainActor
 final class AuthGateViewModel: ObservableObject {
     @Published private(set) var state: AuthGateState = .checking
@@ -292,18 +298,49 @@ final class AuthGateViewModel: ObservableObject {
         return code
     }
     
-    func addFamily(familyUid: String, familyName: String?) async throws -> Bool {
+    func fetchFamily(uid: String, familyUid: String,  completion: @escaping(Bool) -> Void) {
+        db.collection("users").document(uid).getDocument { snapshot, error in
+            if error == nil {
+                guard let document = snapshot, document.exists,
+                      let data = document.data()
+                else {
+                    return
+                }
+                    
+                if let familyArray = data["family"] as? [String] {
+                    if familyArray.isEmpty {
+                        completion(false)
+                    } else {
+                        let hasMatchingUid = familyArray.contains { element in
+                            element.contains(familyUid)
+                        }
+                        
+                        return completion(hasMatchingUid)
+                    }
+                }
+            }
+            completion(false)
+        }
+    }
+    
+    func addFamily(familyUid: String, familyName: String?, completion: @escaping(AddFamilyState) -> Void) {
         guard let user = Auth.auth().currentUser
         else {
-            return false
+            return completion(.에러)
         }
         
-        let familyInfo: String = "\(familyUid):\(familyName ?? "")"
-        
-        try await db.collection("users").document(user.uid).updateData([
-            "family": FieldValue.arrayUnion([familyInfo])
-        ])
-        return true
+        self.fetchFamily(uid: user.uid, familyUid: familyUid) { isExists in
+            if !isExists {
+                Task {
+                    let familyInfo: String = "\(familyUid):\(familyName ?? "")"
+                    try await self.db.collection("users").document(user.uid).updateData([
+                        "family": FieldValue.arrayUnion([familyInfo])
+                    ])
+                    return completion(.추가)
+                }
+            }
+            return completion(.중복)
+        }
     }
     
     func fetchStudentInfo(studentUid: String) async throws -> String? {
@@ -320,7 +357,7 @@ final class AuthGateViewModel: ObservableObject {
         return displayName
     }
     
-    func fetchStudentForCodeWithUid(code: String, uid: String, parentUid: String) async throws -> (Bool, String)? {
+    func fetchStudentForCodeWithUid(code: String, uid: String, parentUid: String, parentName: String) async throws -> (Bool, String)? {
         let documentRef = db.collection("linkCodes").document(code)
         let document = try await documentRef.getDocument()
 
@@ -352,8 +389,13 @@ final class AuthGateViewModel: ObservableObject {
             return (false, "이미 사용된 코드입니다.")
         }
                 
+        var parentInfo = parentUid
+        if parentName.isEmpty == false {
+            parentInfo = "\(parentUid):\(parentName)"
+        }
+        
         try await documentRef.updateData([
-            "parent": FieldValue.arrayUnion([parentUid]),
+            "parent": FieldValue.arrayUnion([parentInfo]),
             "used": true
         ])
 

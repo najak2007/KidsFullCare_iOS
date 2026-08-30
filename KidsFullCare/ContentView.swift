@@ -132,12 +132,11 @@ struct ContentView: View {
         
         guard let userUid = Auth.auth().currentUser?.uid
         else {
+            pendingLink = (code, uid, name)
             return
         }
 
         if authGateViewModel.state == .loggedIn(role: "parent", profileImg: DeviceIdentifier.shared.getProfileImage(userUid)) {
-            pendingLink = nil
-
             guard let _ = Auth.auth().currentUser?.uid
             else {
                 pendingLink = (code, uid, name)
@@ -154,15 +153,24 @@ struct ContentView: View {
     }
     
     private func flushPendingLinkIfNeeded() {
-        guard let pending = pendingLink, let webView = userViewModel.webView else { return }
+        guard let pending = pendingLink, let webView = userViewModel.webView
+        else {
+            return
+        }
         
         guard let parentUid = Auth.auth().currentUser?.uid
         else {
             return
         }
+        
+        var parentName: String = ""
+        if let displayName = DeviceIdentifier.shared.getUserForKey("displayName"),
+           displayName.isEmpty == false {
+            parentName = displayName
+        }
 
         Task { @MainActor in
-            if let matchUid: (Bool, String) = try await authGateViewModel.fetchStudentForCodeWithUid(code: pending.code, uid: pending.uid, parentUid: parentUid) {
+            if let matchUid: (Bool, String) = try await authGateViewModel.fetchStudentForCodeWithUid(code: pending.code, uid: pending.uid, parentUid: parentUid, parentName: parentName) {
                 if matchUid.0 {
                     webView.notifyIncomingLinkCode(uid: pending.uid, name: pending.name)
                 } else {

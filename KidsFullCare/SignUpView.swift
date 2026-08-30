@@ -17,6 +17,7 @@ import PhotosUI
 struct SignUpView: UIViewRepresentable {
     @ObservedObject var userViewModel: UserViewModel
     @ObservedObject var authGate: AuthGateViewModel
+    
     let url: URL
     var onFirstLoad: (() -> Void)?
 
@@ -37,6 +38,7 @@ struct SignUpView: UIViewRepresentable {
         userContentController.add(context.coordinator, name: "inputFocus")
         userContentController.add(context.coordinator, name: "pickProfileImage")
         userContentController.add(context.coordinator, name: "addFamilyForUID")
+        userContentController.add(context.coordinator, name: "qrCodeAuthTimeLimit")
 
         config.userContentController = userContentController
 
@@ -219,6 +221,10 @@ struct SignUpView: UIViewRepresentable {
                    let addName = body["name"] as? String {
                     handleAddFamily(uid: addUid, name: addName)
                 }
+            case "qrCodeAuthTimeLimit":
+                if let authCode = message.body as? String {
+                    handleQRCodeAuthTimeLimit(code: authCode)
+                }
             default:
                 break
             }
@@ -298,6 +304,79 @@ struct SignUpView: UIViewRepresentable {
             }
         }
 
+        private func handleQRCodeAuthTimeLimit(code: String) {
+            guard let uid = Auth.auth().currentUser?.uid
+
+            else {
+                return
+            }
+            
+            LinkCodeListener.shared.startListening(codeId: code, studentUid: uid) { parents in
+                guard let parents = parents,
+                      let parentInfoStr = parents.first
+                else {
+                    return
+                }
+
+                var parentUid: String = String(parentInfoStr.split(separator: ":").first!)
+                var parentName: String = String(parentInfoStr.split(separator: ":").last!)
+                
+                if parentName.isEmpty {
+                    parentName = "학부모"
+                }
+                
+                self.authGate?.addFamily(familyUid: parentUid , familyName: parentName) { isResult in
+                    
+                    if isResult == .중복 {
+                        let payload: [String: Any] = [
+                            "name": parentName,
+                            "result": "중복"
+                        ]
+                        
+                        guard let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
+                              let jsonString = String(data: jsonData, encoding: .utf8)
+                        else {
+                            return
+                        }
+                        
+                        let jsScript = """
+                            (function() {
+                                window.onNativeQRCodeAuthComplete && window.onNativeQRCodeAuthComplete(\(jsonString));
+                                return null;
+                            })();
+                            """
+                        
+                        DispatchQueue.main.async { [weak self] in
+                            self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
+                        }
+                        return
+                    }
+                }
+                
+                let payload: [String: Any] = [
+                    "name": parentName,
+                    "result": "추가"
+                ]
+                
+                guard let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
+                      let jsonString = String(data: jsonData, encoding: .utf8)
+                else {
+                    return
+                }
+                
+                let jsScript = """
+                    (function() {
+                        window.onNativeQRCodeAuthComplete && window.onNativeQRCodeAuthComplete(\(jsonString));
+                        return null;
+                    })();
+                    """
+                
+                DispatchQueue.main.async { [weak self] in
+                    self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
+                }
+            }
+        }
+        
         private func handleEmailSignIn(email: String, password: String) {
             Task {
                 do {
@@ -369,8 +448,8 @@ struct SignUpView: UIViewRepresentable {
         }
         
         private func handleAddFamily(uid: String, name: String) {
-            Task {
-                if let _ = try await authGate?.addFamily(familyUid: uid, familyName: name) {
+            self.authGate?.addFamily(familyUid: uid, familyName: name) { isResult in
+                if isResult == .추가 {
                     let payload: [String: Any] = [
                         "addUserName": name,
                         "addUserUid": uid
