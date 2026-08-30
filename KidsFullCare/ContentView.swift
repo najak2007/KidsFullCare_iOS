@@ -162,9 +162,15 @@ struct ContentView: View {
         else {
             return
         }
+        
+        var parentName: String = ""
+        if let displayName = DeviceIdentifier.shared.getUserForKey("displayName"),
+           displayName.isEmpty == false {
+            parentName = displayName
+        }
 
         Task { @MainActor in
-            if let matchUid: (Bool, String) = try await authGateViewModel.fetchStudentForCodeWithUid(code: pending.code, uid: pending.uid, parentUid: parentUid) {
+            if let matchUid: (Bool, String) = try await authGateViewModel.fetchStudentForCodeWithUid(code: pending.code, uid: pending.uid, parentUid: parentUid, parentName: parentName) {
                 if matchUid.0 {
                     webView.notifyIncomingLinkCode(uid: pending.uid, name: pending.name)
                 } else {

@@ -357,7 +357,7 @@ final class AuthGateViewModel: ObservableObject {
         return displayName
     }
     
-    func fetchStudentForCodeWithUid(code: String, uid: String, parentUid: String) async throws -> (Bool, String)? {
+    func fetchStudentForCodeWithUid(code: String, uid: String, parentUid: String, parentName: String) async throws -> (Bool, String)? {
         let documentRef = db.collection("linkCodes").document(code)
         let document = try await documentRef.getDocument()
 
@@ -389,8 +389,13 @@ final class AuthGateViewModel: ObservableObject {
             return (false, "이미 사용된 코드입니다.")
         }
                 
+        var parentInfo = parentUid
+        if parentName.isEmpty == false {
+            parentInfo = "\(parentUid):\(parentName)"
+        }
+        
         try await documentRef.updateData([
-            "parent": FieldValue.arrayUnion([parentUid]),
+            "parent": FieldValue.arrayUnion([parentInfo]),
             "used": true
         ])
 

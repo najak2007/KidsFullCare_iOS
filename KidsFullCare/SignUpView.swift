@@ -313,20 +313,49 @@ struct SignUpView: UIViewRepresentable {
             
             LinkCodeListener.shared.startListening(codeId: code, studentUid: uid) { parents in
                 guard let parents = parents,
-                      let parentUid = parents.first
+                      let parentInfoStr = parents.first
                 else {
                     return
                 }
 
-                self.authGate?.addFamily(familyUid: parentUid, familyName: "학부모") { isResult in
+                var parentUid: String = String(parentInfoStr.split(separator: ":").first!)
+                var parentName: String = String(parentInfoStr.split(separator: ":").last!)
+                
+                if parentName.isEmpty {
+                    parentName = "학부모"
+                }
+                
+                self.authGate?.addFamily(familyUid: parentUid , familyName: parentName) { isResult in
                     
-                    if isResult != .추가 {
-                        self.sendErrorToJS(provider: "email", message: "학부모 등록에 실패했습니다.", code: nil)
+                    if isResult == .중복 {
+                        let payload: [String: Any] = [
+                            "name": parentName,
+                            "result": "중복"
+                        ]
+                        
+                        guard let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
+                              let jsonString = String(data: jsonData, encoding: .utf8)
+                        else {
+                            return
+                        }
+                        
+                        let jsScript = """
+                            (function() {
+                                window.onNativeQRCodeAuthComplete && window.onNativeQRCodeAuthComplete(\(jsonString));
+                                return null;
+                            })();
+                            """
+                        
+                        DispatchQueue.main.async { [weak self] in
+                            self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
+                        }
+                        return
                     }
                 }
                 
                 let payload: [String: Any] = [
-                    "name": "학부모",
+                    "name": parentName,
+                    "result": "추가"
                 ]
                 
                 guard let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
