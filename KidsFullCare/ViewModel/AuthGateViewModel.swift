@@ -234,14 +234,18 @@ final class AuthGateViewModel: ObservableObject {
         // Firebase 로그인 (최초 접속 시 자동 회원가입)
         let result = try await Auth.auth().signIn(with: credential)
         
-        let displayName = DeviceIdentifier.shared.setUserAppleID(appleCredential, identityToken, rawNonce, result.user.uid)
+        var displayName = DeviceIdentifier.shared.setUserAppleID(appleCredential, identityToken, rawNonce, result.user.uid)
+        
+        if displayName.isEmpty {
+            displayName = DeviceIdentifier.shared.getUserForKey("displayName") ?? ""
+        }
         
         try await db.collection("users").document(result.user.uid).setData([
             "uid": result.user.uid,
             "appleUserId": appleCredential.user,
             "uuid": DeviceIdentifier.shared.getDeviceUUID(),
             "email": result.user.email ?? "",
-            "displayName": result.user.displayName ?? displayName,
+            "displayName": displayName,
             "provider": "apple",
             "updatedAt": FieldValue.serverTimestamp(),
         ], merge: true)
@@ -335,7 +339,7 @@ final class AuthGateViewModel: ObservableObject {
                         "uid": familyUid
                     ]
                     try await self.db.collection("users").document(user.uid).updateData([
-                        "family": [FieldValue.arrayUnion([familyInfo])]
+                        "family": FieldValue.arrayUnion([familyInfo])
                     ])
                     return completion(.추가)
                 }
@@ -402,10 +406,10 @@ final class AuthGateViewModel: ObservableObject {
             return (false, "이미 사용된 코드입니다.")
         }
                 
-        var parentInfo = parentUid
-        if parentName.isEmpty == false {
-            parentInfo = "\(parentUid):\(parentName)"
-        }
+        let parentInfo: [String: Any] = [
+            "name": parentName,
+            "uid": parentUid
+        ]
         
         try await documentRef.updateData([
             "parent": FieldValue.arrayUnion([parentInfo]),
