@@ -50,20 +50,10 @@ class UserViewModel: ObservableObject {
         
         webView?.evaluateJavaScript(script) { _, error in
             if let error = error {
-                #if DEBUG
+#if DEBUG
                 print("JS 호출 에러 : \(error.localizedDescription)")
-                #endif
+#endif
             }
-        }
-    }
-    
-    func addFamilyForUid(currentUid: String, newUid: String) {
-        let documentRef = db.collection("users").document(currentUid)
-        
-        Task { @MainActor in
-            try await documentRef.updateData([
-                "family": FieldValue.arrayUnion([newUid])
-            ])
         }
     }
 }

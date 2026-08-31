@@ -19,8 +19,11 @@ struct ContentView: View {
     @State private var showMatchError = false
     @State private var matchErrorDescription: String? = nil
     @State private var password: String? = ""
+    @State private var backgroundStateTime: Date = Date()
+    @State private var toast: Toast? = nil
     
     @State private var pendingLink: (code: String, uid: String, name: String)?
+    @Environment(\.scenePhase) var scenePhase
     
     init() {
         do {
@@ -115,6 +118,28 @@ struct ContentView: View {
         } message: {
             Text(self.matchErrorDescription ?? "인증 오류가 발생했습니다.")
         }
+        .onChange(of: scenePhase) { oldValue, newValue in
+#if DEBUG
+            print("KidsFullCare scenePhase oldValue = \(oldValue), newValue = \(newValue)")
+#endif
+            if oldValue == .active, newValue == .inactive {
+                if let _ = Auth.auth().currentUser {
+                    backgroundStateTime = Date()
+                }
+                
+            } else if oldValue == .background, newValue == .inactive {
+                if let _ = Auth.auth().currentUser,
+                   Date().timeIntervalSince(backgroundStateTime) > 600 {
+                    do {
+                        self.toast = Toast(type: .info, title: "", message: "10분 동안 사용하지 않아 자동으로 로그아웃되었습니다.")
+                        try Auth.auth().signOut()
+                    } catch {
+                        
+                    }
+                }
+            }
+        }
+        .toastView(toast: $toast)
     }
     
     /// https://kidsfullcare.app/link?code=123456&uid=xxx 형태의 유니버설 링크를 받아서
