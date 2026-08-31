@@ -318,7 +318,7 @@ struct SignUpView: UIViewRepresentable {
                     return
                 }
 
-                var parentUid: String = String(parentInfoStr.split(separator: ":").first!)
+                let parentUid: String = String(parentInfoStr.split(separator: ":").first!)
                 var parentName: String = String(parentInfoStr.split(separator: ":").last!)
                 
                 if parentName.isEmpty {
@@ -326,55 +326,34 @@ struct SignUpView: UIViewRepresentable {
                 }
                 
                 self.authGate?.addFamily(familyUid: parentUid , familyName: parentName) { isResult in
-                    
-                    if isResult == .중복 {
-                        let payload: [String: Any] = [
-                            "name": parentName,
-                            "result": "중복"
-                        ]
-                        
-                        guard let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
-                              let jsonString = String(data: jsonData, encoding: .utf8)
-                        else {
-                            return
-                        }
-                        
-                        let jsScript = """
-                            (function() {
-                                window.onNativeQRCodeAuthComplete && window.onNativeQRCodeAuthComplete(\(jsonString));
-                                return null;
-                            })();
-                            """
-                        
-                        DispatchQueue.main.async { [weak self] in
-                            self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
-                        }
-                        return
-                    }
-                }
-                
-                let payload: [String: Any] = [
-                    "name": parentName,
-                    "result": "추가"
-                ]
-                
-                guard let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
-                      let jsonString = String(data: jsonData, encoding: .utf8)
-                else {
-                    return
-                }
-                
-                let jsScript = """
-                    (function() {
-                        window.onNativeQRCodeAuthComplete && window.onNativeQRCodeAuthComplete(\(jsonString));
-                        return null;
-                    })();
-                    """
-                
-                DispatchQueue.main.async { [weak self] in
-                    self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
+                    self.sendQRCodeAuthResultHandler(isResult: isResult, codeId: code, familyUid: parentUid, familyName: parentName)
                 }
             }
+        }
+        
+        private func sendQRCodeAuthResultHandler(isResult: AddFamilyState, codeId: String, familyUid: String, familyName: String) {
+            let payload: [String: Any] = [
+                "name": familyName,
+                "result": "\(isResult.K)",
+                "code": codeId
+            ]
+            
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
+                  let jsonString = String(data: jsonData, encoding: .utf8)
+            else {
+                return
+            }
+            let jsScript = """
+                (function() {
+                    window.onNativeQRCodeAuthComplete && window.onNativeQRCodeAuthComplete(\(jsonString));
+                    return null;
+                })();
+                """
+            
+            DispatchQueue.main.async { [weak self] in
+                self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
+            }
+            return
         }
         
         private func handleEmailSignIn(email: String, password: String) {
@@ -449,28 +428,27 @@ struct SignUpView: UIViewRepresentable {
         
         private func handleAddFamily(uid: String, name: String) {
             self.authGate?.addFamily(familyUid: uid, familyName: name) { isResult in
-                if isResult == .추가 {
-                    let payload: [String: Any] = [
-                        "addUserName": name,
-                        "addUserUid": uid
-                    ]
-                    
-                    guard let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
-                          let jsonString = String(data: jsonData, encoding: .utf8)
-                    else {
-                        return
-                    }
-                    
-                    let jsScript = """
-                        (function() {
-                            window.onNativeAddFamilyForName && window.onNativeAddFamilyForName(\(jsonString));
-                            return null;
-                        })();
-                        """
-                    
-                    DispatchQueue.main.async { [weak self] in
-                        self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
-                    }
+                let payload: [String: Any] = [
+                    "addUserName": name,
+                    "addUserUid": uid,
+                    "linkResult": "\(isResult.K)"
+                ]
+                
+                guard let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
+                      let jsonString = String(data: jsonData, encoding: .utf8)
+                else {
+                    return
+                }
+                
+                let jsScript = """
+                    (function() {
+                        window.onNativeAddFamilyForName && window.onNativeAddFamilyForName(\(jsonString));
+                        return null;
+                    })();
+                    """
+                
+                DispatchQueue.main.async { [weak self] in
+                    self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
                 }
             }
         }

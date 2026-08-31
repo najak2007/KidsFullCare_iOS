@@ -14,4 +14,6 @@ class Config {
     static let KIDS_FULL_CARE_URL: String = "https://kidsfullcare.web.app"
     static let USE_BIOMETRIC_KEY: String = "UseBiometricAuthentication"
     static let SAVED_STATE_KEY: String = "SavedBiometricDomainState"
+    
+    static let APP_START_DATE: Date? = Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: 1))
 }

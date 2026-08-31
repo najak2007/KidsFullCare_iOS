@@ -32,10 +32,14 @@ enum AppleAuthState: Equatable {
     case unKnown                        // 알수 없는 상태 또는 오류 발생
 }
 
-enum AddFamilyState: Equatable {
+enum AddFamilyState: String, Equatable {
     case 추가
     case 중복
     case 에러
+    
+    var K: String {
+        return self.rawValue
+    }
 }
 
 @MainActor
@@ -290,11 +294,6 @@ final class AuthGateViewModel: ObservableObject {
             "createdAt": FieldValue.serverTimestamp(),
             "used": false,
         ])
- 
-        try await db.collection("users").document(user.uid).updateData([
-            "currentLinkCode": code,
-        ])
- 
         return code
     }
     
@@ -307,15 +306,14 @@ final class AuthGateViewModel: ObservableObject {
                     return
                 }
                     
-                if let familyArray = data["family"] as? [String] {
+                if let familyArray = data["family"] as? [[String: Any]] {
                     if familyArray.isEmpty {
                         completion(false)
                     } else {
-                        let hasMatchingUid = familyArray.contains { element in
-                            element.contains(familyUid)
-                        }
-                        
-                        return completion(hasMatchingUid)
+//                        let hasMatchingUid = familyArray.filter { ($0["uid"] as? String) == familyUid }
+//                        return completion(hasMatchingUid.isEmpty == false)
+                        let alreadExists = familyArray.contains { ($0["uid"] as? String) == familyUid }
+                        completion(alreadExists)
                     }
                 }
             }
@@ -332,15 +330,30 @@ final class AuthGateViewModel: ObservableObject {
         self.fetchFamily(uid: user.uid, familyUid: familyUid) { isExists in
             if !isExists {
                 Task {
-                    let familyInfo: String = "\(familyUid):\(familyName ?? "")"
+                    let familyInfo: [String: Any] = [
+                        "name": familyName ?? "",
+                        "uid": familyUid
+                    ]
                     try await self.db.collection("users").document(user.uid).updateData([
-                        "family": FieldValue.arrayUnion([familyInfo])
+                        "family": [FieldValue.arrayUnion([familyInfo])]
                     ])
                     return completion(.추가)
                 }
             }
             return completion(.중복)
         }
+    }
+    
+    func removeFamilyMember(uid memberUid: String) async throws {
+        guard let user = Auth.auth().currentUser else { return }
+        let docRef = db.collection("users").document(user.uid)
+ 
+        let snapshot = try await docRef.getDocument()
+        guard var rawArray = snapshot.data()?["family"] as? [[String: Any]] else { return }
+ 
+        rawArray.removeAll { ($0["uid"] as? String) == memberUid }
+ 
+        try await docRef.updateData(["family": rawArray])
     }
     
     func fetchStudentInfo(studentUid: String) async throws -> String? {
@@ -484,14 +497,14 @@ final class AuthGateViewModel: ObservableObject {
 #endif
                         isReseting = false
                     }
-
-                    KeychainHelper.shared.delete(account: "userID")
-
-                    try? Auth.auth().signOut()
-                    self.isUseBiometricAck = .사용여부_질문필요
-                    isReseting = false
-                    state = .signUp
                 }
+                KeychainHelper.shared.delete(account: "userID")
+
+                try? Auth.auth().signOut()
+                self.isUseBiometricAck = .사용여부_질문필요
+                isReseting = false
+                state = .signUp
+                
             } else if provider == "google" {
                 
             } else if provider == "email" {
