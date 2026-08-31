@@ -17,7 +17,7 @@ class LinkCodeListener {
     private var previousUsed: Bool?
     private var previousParentCount: Int = 0
     
-    func startListening(codeId: String, studentUid: String, onLinkCompleted: (([String]?) -> Void)? = nil) {
+    func startListening(codeId: String, studentUid: String, onLinkCompleted: (([[String: Any]]?) -> Void)? = nil) {
         let documentRef = db.collection("linkCodes").document(codeId)
         
         listener = documentRef.addSnapshotListener { [weak self] documentSnapshot, error in
@@ -41,7 +41,7 @@ class LinkCodeListener {
             }
             
             let currentUsed = data["used"] as? Bool ?? false
-            let parentArray = data["parent"] as? [String] ?? []
+            let parentArray = data["parent"] as? [[String: Any]] ?? []
             
             if let prevUsed = self.previousUsed {
                 let isUsedChanged = (prevUsed == false && currentUsed == true)

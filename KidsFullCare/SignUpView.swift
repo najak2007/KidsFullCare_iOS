@@ -313,16 +313,11 @@ struct SignUpView: UIViewRepresentable {
             
             LinkCodeListener.shared.startListening(codeId: code, studentUid: uid) { parents in
                 guard let parents = parents,
-                      let parentInfoStr = parents.first
+                      let parentInfo = parents.first,
+                      let parentUid = parentInfo["uid"] as? String,
+                      let parentName = parentInfo["name"] as? String
                 else {
                     return
-                }
-
-                let parentUid: String = String(parentInfoStr.split(separator: ":").first!)
-                var parentName: String = String(parentInfoStr.split(separator: ":").last!)
-                
-                if parentName.isEmpty {
-                    parentName = "학부모"
                 }
                 
                 self.authGate?.addFamily(familyUid: parentUid , familyName: parentName) { isResult in
