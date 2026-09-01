@@ -122,6 +122,7 @@ struct SignUpView: UIViewRepresentable {
                 payload["role"] = role
                 payload["name"] = DeviceIdentifier.shared.getUserForKey("displayName")
                 payload["imageBase64"] = profileImg
+                payload["familyMembers"] = authGate?.familyMembers
             case .signUp:
                 payload["status"] = "signUp"
             }
@@ -570,9 +571,11 @@ struct SignUpView: UIViewRepresentable {
         private func handleGenerateLinkCode() {
             Task {
                 do {
-                    let code = try await authGate?.generateStudentLinkCode() ?? ""
-                    let uid = Auth.auth().currentUser?.uid
-                    sendLinkCodeResult(code: code, uid: uid, name: DeviceIdentifier.shared.getUserForKey("displayName"), errorMessage: nil)
+                    if let generateLinkCodeResult = try await authGate?.generateStudentLinkCode() {
+                        sendLinkCodeResult(code: generateLinkCodeResult.code, uid: generateLinkCodeResult.uid, name: generateLinkCodeResult.name, errorMessage: nil)
+                    } else {
+                        sendLinkCodeResult(code: nil, uid: nil, name: nil, errorMessage: "코드 생성 중 오류가 발생했습니다.")
+                    }
                 } catch {
                     sendLinkCodeResult(code: nil, uid: nil, name: nil, errorMessage: "코드 생성 중 오류가 발생했습니다.")
                 }

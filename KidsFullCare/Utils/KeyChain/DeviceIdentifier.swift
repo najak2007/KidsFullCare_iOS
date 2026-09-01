@@ -107,6 +107,21 @@ class DeviceIdentifier {
         return getUserID()?[key] as? String
     }
     
+    func setUserForKey(_ key: String, _ value: String) {
+        var userInfo: [String: Any] = [:]
+        if let userDict = getUserID() {
+            userInfo = userDict
+        }
+        userInfo[key] = value
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: userInfo, options: .prettyPrinted),
+              let jsonString = String(data: jsonData, encoding: .utf8)
+        else {
+            return
+        }
+        KeychainHelper.shared.save(jsonString, account: keychainUserID)
+        
+    }
+    
     func setUserPassword(_ faceID: Data, _ password: String?) {
         guard let passStr = password
         else {

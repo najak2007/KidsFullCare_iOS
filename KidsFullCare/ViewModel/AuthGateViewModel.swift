@@ -42,11 +42,24 @@ enum AddFamilyState: String, Equatable {
     }
 }
 
+struct GenerateLinkCodeResult: Decodable, Encodable {
+    let code: String
+    let name: String
+    let uid: String
+}
+
+struct FamilyMember: Decodable, Encodable {
+    let name: String
+    let uid: String
+    let profileImg: String
+}
+
 @MainActor
 final class AuthGateViewModel: ObservableObject {
     @Published private(set) var state: AuthGateState = .checking
     @Published var isAuthenticated: AppleAuthState = .authInit
     @Published var isReseting : Bool = false
+    @Published var familyMembers: [[String: Any]] = []
     
     private nonisolated(unsafe) var authListenerHandle: AuthStateDidChangeListenerHandle?
     private let db = Firestore.firestore()
@@ -130,6 +143,17 @@ final class AuthGateViewModel: ObservableObject {
             name = snapshot.data()?["displayName"] as? String ?? ""
             if let role = snapshot.data()?["role"] as? String,
                !role.isEmpty {
+                if let familyArray = snapshot.data()?["family"] as? [[String: Any]] {
+                    if !familyArray.isEmpty {
+                        familyMembers = familyArray.map { member -> [String: Any] in
+                            return [
+                                "name": member["name"] as? String ?? "",
+                                "uid": member["uid"] as? String ?? "",
+                                "image": member["profileImg"] as? String ?? ""
+                            ]
+                        }
+                    }
+                }
                 state = .loggedIn(role: role, profileImg: DeviceIdentifier.shared.getProfileImage(user.uid))
                 loginSuccess.send(true)
             } else {
@@ -284,7 +308,7 @@ final class AuthGateViewModel: ObservableObject {
     /// 학생용 6자리 연결 코드를 생성해서 linkCodes/{code} 문서를 만들고,
     /// users/{uid}에도 currentLinkCode로 표시해둡니다.
     /// (원래 JS의 generateLinkCode.js와 동일한 로직을 네이티브로 옮긴 버전입니다)
-    func generateStudentLinkCode() async throws -> String {
+    func generateStudentLinkCode() async throws -> GenerateLinkCodeResult? {
         guard let user = Auth.auth().currentUser else {
             throw NSError(domain: "AuthGateViewModel", code: -1, userInfo: [
                 NSLocalizedDescriptionKey: "로그인이 필요합니다.",
@@ -298,7 +322,20 @@ final class AuthGateViewModel: ObservableObject {
             "createdAt": FieldValue.serverTimestamp(),
             "used": false,
         ])
-        return code
+        
+        do {
+            let snapshot = try await db.collection("users").document(user.uid).getDocument()
+            let name = snapshot.data()?["displayName"] as? String ?? ""
+            
+            if DeviceIdentifier.shared.getUserForKey("displayName") != name {
+                DeviceIdentifier.shared.setUserForKey("displayName", name)
+            }
+            
+            return GenerateLinkCodeResult(code: code, name: name, uid: user.uid)
+        } catch {
+            
+        }
+        return nil
     }
     
     func fetchFamily(uid: String, familyUid: String,  completion: @escaping(Bool) -> Void) {
