@@ -14,6 +14,14 @@ import Combine
 import FirebaseAuth
 import PhotosUI
 
+enum HTTPMethod: String {
+    case get = "GET"
+    case post = "POST"
+    case put = "PUT"
+    case delete = "DELETE"
+}
+
+
 struct SignUpView: UIViewRepresentable {
     @ObservedObject var userViewModel: UserViewModel
     @ObservedObject var authGate: AuthGateViewModel
@@ -104,7 +112,8 @@ struct SignUpView: UIViewRepresentable {
 
         private func notifyJS(state: AuthGateState) {
             var payload: [String: Any] = [:]
-
+            var httpMethod: HTTPMethod = .get
+            
             switch state {
             case .checking:
                 payload["status"] = "checking"
@@ -518,7 +527,9 @@ struct SignUpView: UIViewRepresentable {
  
         private func sendPickedImage(_ profileImage: UIImage?) {
             guard let image = profileImage else {
-                let payload: [String: Any] = ["imageBase64": ""]
+                let payload: [String: Any] = [
+                    "imageBase64": ""
+                ]
 
                 guard
                     let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
@@ -531,9 +542,11 @@ struct SignUpView: UIViewRepresentable {
                         return null;
                     })();
                     """
-                webView?.evaluateJavaScript(jsScript, completionHandler: { _ ,_  in
+                webView?.evaluateJavaScript(jsScript, completionHandler: { [weak self] _ ,_  in
                     if let uid = Auth.auth().currentUser?.uid {
-                        DeviceIdentifier.shared.setProfileImage(uid, nil)
+                        Task {
+                            try await self?.authGate?.saveProfileImage(uid: uid, imageBase64: "")
+                        }
                     }
                 })
                 return
@@ -541,31 +554,34 @@ struct SignUpView: UIViewRepresentable {
             
             // 원본 용량이 클 수 있으니 리사이즈 + JPEG 압축 후 base64로 인코딩합니다.
             guard
-                let resized = image.resizedForUpload(maxDimension: 800),
+                let resized = image.resizedForUpload(maxDimension: 120),
                 let jpegData = resized.jpegData(compressionQuality: 0.7)
             else {
                 sendErrorToJS(provider: "profileImage", message: "이미지를 처리하지 못했습니다.", code: nil)
                 return
             }
 
+            let profileImageBase64 = jpegData.base64EncodedString()
             
-            let payload: [String: Any] = ["imageBase64": jpegData.base64EncodedString()]
-            guard
-                let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
-                let jsonString = String(data: jsonData, encoding: .utf8)
-            else { return }
- 
-            let jsScript = """
+            if let uid = Auth.auth().currentUser?.uid {
+                Task {
+                    try await self.authGate?.saveProfileImage(uid: uid, imageBase64: profileImageBase64)
+                }
+                let payload: [String: Any] = ["imageBase64": profileImageBase64]
+                guard
+                    let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
+                    let jsonString = String(data: jsonData, encoding: .utf8)
+                else { return }
+                
+                let jsScript = """
                 (function() {
                     window.onNativeProfileImagePicked && window.onNativeProfileImagePicked(\(jsonString));
                     return null;
                 })();
                 """
-            webView?.evaluateJavaScript(jsScript, completionHandler: { _, _ in
-                if let uid = Auth.auth().currentUser?.uid {
-                    DeviceIdentifier.shared.setProfileImage(uid, jpegData.base64EncodedString())
-                }
-            })
+                webView?.evaluateJavaScript(jsScript, completionHandler: {  _, _ in
+                })
+            }
         }
         
         private func handleGenerateLinkCode() {

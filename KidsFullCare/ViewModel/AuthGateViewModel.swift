@@ -141,20 +141,48 @@ final class AuthGateViewModel: ObservableObject {
         do {
             let snapshot = try await db.collection("users").document(user.uid).getDocument()
             name = snapshot.data()?["displayName"] as? String ?? ""
-            if let role = snapshot.data()?["role"] as? String,
-               !role.isEmpty {
-                if let familyArray = snapshot.data()?["family"] as? [[String: Any]] {
-                    if !familyArray.isEmpty {
-                        familyMembers = familyArray.map { member -> [String: Any] in
-                            return [
-                                "name": member["name"] as? String ?? "",
-                                "uid": member["uid"] as? String ?? "",
-                                "image": member["profileImg"] as? String ?? ""
-                            ]
+
+            if let role = snapshot.data()?["role"] as? String, !role.isEmpty {
+
+                // family 배열의 각 구성원 프로필 이미지를 "동시에" 가져오되,
+                // 전부 끝날 때까지 기다립니다. (fire-and-forget Task는 여기선 안 됩니다)
+                var resolvedFamilyMembers: [[String: Any]] = []
+
+                if let familyArray = snapshot.data()?["family"] as? [[String: Any]], !familyArray.isEmpty {
+                    resolvedFamilyMembers = try await withThrowingTaskGroup(of: [String: Any].self) { group in
+                        for entry in familyArray {
+                            let memberUid = entry["uid"] as? String ?? ""
+                            let memberName = entry["name"] as? String ?? ""
+
+                            group.addTask {
+                                // 프로필 이미지가 없는 구성원이 있어도 전체가 실패하지 않도록
+                                // try? 로 처리합니다 (실패하면 image 필드만 빠짐).
+                                let profileImgBase64 = try? await self.fetchProfile(fetchUid: memberUid)
+
+                                var dict: [String: Any] = [
+                                    "name": memberName,
+                                    "uid": memberUid,
+                                ]
+                                if let profileImgBase64 {
+                                    dict["image"] = profileImgBase64
+                                }
+                                return dict
+                            }
                         }
+
+                        var results: [[String: Any]] = []
+                        for try await result in group {
+                            results.append(result)
+                        }
+                        return results
                     }
                 }
-                state = .loggedIn(role: role, profileImg: DeviceIdentifier.shared.getProfileImage(user.uid))
+
+                familyMembers = resolvedFamilyMembers
+
+                let profileImgBase64 = try await self.fetchProfile(fetchUid: user.uid)
+
+                state = .loggedIn(role: role, profileImg: profileImgBase64)
                 loginSuccess.send(true)
             } else {
                 // 로그인은 됐는데 role 문서가 없음 → 역할 선택을 마저 해야 함
@@ -351,8 +379,6 @@ final class AuthGateViewModel: ObservableObject {
                     if familyArray.isEmpty {
                         completion(false)
                     } else {
-//                        let hasMatchingUid = familyArray.filter { ($0["uid"] as? String) == familyUid }
-//                        return completion(hasMatchingUid.isEmpty == false)
                         let alreadExists = familyArray.contains { ($0["uid"] as? String) == familyUid }
                         completion(alreadExists)
                     }
@@ -475,9 +501,44 @@ final class AuthGateViewModel: ObservableObject {
         }
 
         try await db.collection("users").document(user.uid).setData(payload, merge: true)
-
-        state = .loggedIn(role: role, profileImg: DeviceIdentifier.shared.getProfileImage(user.uid))
+        let profileImageBase64 = try await self.fetchProfile(fetchUid: user.uid)
+        
+        state = .loggedIn(role: role, profileImg: profileImageBase64)
     }
+    
+    func saveProfileImage(uid: String, imageBase64: String) async throws {
+        if imageBase64.isEmpty {
+            try await self.removeProfileImage(uid: uid)
+        } else {
+            
+            let payload: [String: Any] = [
+                "profileImg": imageBase64,
+                "createdAt": FieldValue.serverTimestamp(),
+            ]
+            try await db.collection("profile").document(uid).setData(payload, merge: true)
+        }
+    }
+    
+    func removeProfileImage(uid: String) async throws {
+        try await db.collection("profile").document(uid).delete()
+    }
+    
+    func fetchProfile(fetchUid: String) async throws -> String {
+        let documentRef = db.collection("profile").document(fetchUid)
+        let document = try await documentRef.getDocument()
+
+        guard document.exists,
+              let data = document.data(),
+              let profileImgBase64 = data["profileImg"] as? String
+        else {
+#if DEBUG
+            print("등록된 프로필 이미지를 찾지 못했습니다.")
+#endif
+            return ""
+        }
+        return profileImgBase64
+    }
+    
     
     func signOut() {
         try? Auth.auth().signOut()
@@ -523,7 +584,7 @@ final class AuthGateViewModel: ObservableObject {
                     )
                     try await Auth.auth().signIn(with: credential)
                     if let user = Auth.auth().currentUser {
-                        DeviceIdentifier.shared.setProfileImage(user.uid, nil)
+                        try await self.removeFamilyMember(uid: user.uid)
                     }
                     if let uid = Auth.auth().currentUser?.uid {
                         try await Firestore.firestore().collection("users").document(uid).delete()
@@ -552,19 +613,19 @@ final class AuthGateViewModel: ObservableObject {
                 if let faceID = DeviceIdentifier.shared.faceID,
                    let password = DeviceIdentifier.shared.getUserPassword(faceID),
                    let email = DeviceIdentifier.shared.getUserForKey("email") {
-             
+                    
                     // 방금 로그인했으니 이미 "최근 인증됨" 상태입니다.
                     // 로그인 직후 다시 reauthenticate하는 건 중복이라 뺐습니다.
                     try await Auth.auth().signIn(withEmail: email, password: password)
-             
+                    
                     guard let user = Auth.auth().currentUser else { return }
                     let uid = user.uid
-             
-                    DeviceIdentifier.shared.setProfileImage(uid, nil)
-             
+                    
+                    try await self.removeFamilyMember(uid: uid)
+                    
                     // 1) Firestore 문서 삭제 (계정이 아직 살아있는 상태에서 먼저)
                     try await Firestore.firestore().collection("users").document(uid).delete()
-             
+                    
                     // 2) Auth 계정 삭제
                     //    여기서 실패하면 절대로 아래(Keychain 삭제/로그아웃/state 전환)를
                     //    실행하면 안 됩니다. 계정은 Firebase에 그대로 남아있는데
@@ -573,20 +634,20 @@ final class AuthGateViewModel: ObservableObject {
                     do {
                         try await user.delete()
                     } catch {
-            #if DEBUG
+#if DEBUG
                         print("Auth 계정 삭제 실패:", error.localizedDescription)
-            #endif
+#endif
                         isReseting = false
                         throw error // 상위 호출부(에러 알림 UI 등)로 실패를 전달합니다.
                     }
-             
-                    // 여기까지 왔다는 건 Firestore + Auth 삭제가 전부 확실히 성공했다는 뜻입니다.
-                    KeychainHelper.shared.delete(account: "userID")
-                    try? Auth.auth().signOut()
-                    self.isUseBiometricAck = .사용여부_질문필요
-                    isReseting = false
-                    state = .signUp
                 }
+                    // 여기까지 왔다는 건 Firestore + Auth 삭제가 전부 확실히 성공했다는 뜻입니다.
+                KeychainHelper.shared.delete(account: "userID")
+                try? Auth.auth().signOut()
+                self.isUseBiometricAck = .사용여부_질문필요
+                isReseting = false
+                state = .signUp
+                
             }
         }
     }

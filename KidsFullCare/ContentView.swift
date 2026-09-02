@@ -161,20 +161,24 @@ struct ContentView: View {
             return
         }
 
-        if authGateViewModel.state == .loggedIn(role: "parent", profileImg: DeviceIdentifier.shared.getProfileImage(userUid)) {
-            guard let _ = Auth.auth().currentUser?.uid
-            else {
+        Task {
+            let profileImageBase64 = try await authGateViewModel.fetchProfile(fetchUid: userUid)
+            
+            if authGateViewModel.state == .loggedIn(role: "parent", profileImg: profileImageBase64) {
+                guard let _ = Auth.auth().currentUser?.uid
+                else {
+                    pendingLink = (code, uid, name)
+                    return
+                }
                 pendingLink = (code, uid, name)
+                flushPendingLinkIfNeeded()
+                return
+            } else if authGateViewModel.state == .loggedIn(role: "student", profileImg: profileImageBase64) {
+                self.showRoleError.toggle()
                 return
             }
             pendingLink = (code, uid, name)
-            flushPendingLinkIfNeeded()
-            return
-        } else if authGateViewModel.state == .loggedIn(role: "student", profileImg: DeviceIdentifier.shared.getProfileImage(userUid)) {
-            self.showRoleError.toggle()
-            return
         }
-        pendingLink = (code, uid, name)
     }
     
     private func flushPendingLinkIfNeeded() {

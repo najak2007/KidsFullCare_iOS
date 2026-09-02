@@ -135,18 +135,6 @@ class DeviceIdentifier {
         return KeychainHelper.shared.read(account: faceID.hexString )
     }
     
-    func getProfileImage(_ uid: String) -> String {
-        return UserDefaults.standard.string(forKey: uid) ?? ""
-    }
-    
-    func setProfileImage(_ uid: String, _ image: String?) {
-        if let image = image {
-            UserDefaults.standard.set(image, forKey: uid)
-        } else {
-            UserDefaults.standard.removeObject(forKey: uid)
-        }
-    }
-    
     var faceID: Data? {
         return UserDefaults.standard.data(forKey: Config.SAVED_STATE_KEY)
     }
