@@ -112,7 +112,6 @@ struct SignUpView: UIViewRepresentable {
 
         private func notifyJS(state: AuthGateState) {
             var payload: [String: Any] = [:]
-            var httpMethod: HTTPMethod = .get
             
             switch state {
             case .checking:
@@ -234,6 +233,13 @@ struct SignUpView: UIViewRepresentable {
             case "qrCodeAuthTimeLimit":
                 if let authCode = message.body as? String {
                     handleQRCodeAuthTimeLimit(code: authCode)
+                }
+            case "fetchProfileImage":
+                if let uid = message.body as? String {
+                    Task {
+                        let image = try? await self.authGate?.fetchProfile(fetchUid: uid)
+                        self.sendProfileImageResult(uid: uid, image: image)
+                    }
                 }
             default:
                 break

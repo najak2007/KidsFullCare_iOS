@@ -143,7 +143,19 @@ final class AuthGateViewModel: ObservableObject {
             name = snapshot.data()?["displayName"] as? String ?? ""
 
             if let role = snapshot.data()?["role"] as? String, !role.isEmpty {
+#if true
+                if let familyArray = snapshot.data()?["family"] as? [[String: Any]] {
+                    if !familyArray.isEmpty {
+                        familyMembers = familyArray.map { member -> [String: Any] in
+                            return [
+                                "name": member["name"] as? String ?? "",
+                                "uid": member["uid"] as? String ?? "",
+                            ]
+                        }
+                    }
+                }
 
+#else
                 // family 배열의 각 구성원 프로필 이미지를 "동시에" 가져오되,
                 // 전부 끝날 때까지 기다립니다. (fire-and-forget Task는 여기선 안 됩니다)
                 var resolvedFamilyMembers: [[String: Any]] = []
@@ -179,7 +191,7 @@ final class AuthGateViewModel: ObservableObject {
                 }
 
                 familyMembers = resolvedFamilyMembers
-
+#endif
                 let profileImgBase64 = try await self.fetchProfile(fetchUid: user.uid)
 
                 state = .loggedIn(role: role, profileImg: profileImgBase64)
