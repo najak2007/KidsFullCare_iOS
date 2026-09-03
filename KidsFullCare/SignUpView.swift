@@ -47,6 +47,8 @@ struct SignUpView: UIViewRepresentable {
         userContentController.add(context.coordinator, name: "pickProfileImage")
         userContentController.add(context.coordinator, name: "addFamilyForUID")
         userContentController.add(context.coordinator, name: "qrCodeAuthTimeLimit")
+        userContentController.add(context.coordinator, name: "fetchProfileImage")
+        userContentController.add(context.coordinator, name: "addFamilyReq")
 
         config.userContentController = userContentController
 
@@ -237,10 +239,15 @@ struct SignUpView: UIViewRepresentable {
             case "fetchProfileImage":
                 if let uid = message.body as? String {
                     Task {
-                        let image = try? await self.authGate?.fetchProfile(fetchUid: uid)
-                        self.sendProfileImageResult(uid: uid, image: image)
+                        let imageBase64 = try? await self.authGate?.fetchProfile(fetchUid: uid)
+                        self.sendProfileImageResult(uid: uid, imageBase64: imageBase64)
                     }
                 }
+            case "addFamilyReq":
+                if let role = message.body as? String {
+                    handleAddFamilyRequest(role: role)
+                }
+                   
             default:
                 break
             }
@@ -339,6 +346,30 @@ struct SignUpView: UIViewRepresentable {
                 self.authGate?.addFamily(familyUid: parentUid , familyName: parentName) { isResult in
                     self.sendQRCodeAuthResultHandler(isResult: isResult, codeId: code, familyUid: parentUid, familyName: parentName)
                 }
+            }
+        }
+        
+        private func sendProfileImageResult(uid: String, imageBase64: String?) {
+            var payload: [String: Any] = ["uid": uid]
+            
+            if let imageBase64, !imageBase64.isEmpty {
+                payload["imageBase64"] = imageBase64
+            }
+            
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
+                  let jsonString = String(data: jsonData, encoding: .utf8)
+            else {
+                return
+            }
+            
+            let jsScript = """
+                (function() {
+                    window.onNativeFamilyProfileImage && window.onNativeFamilyProfileImage(\(jsonString));
+                    return null;
+                })();
+                """
+            DispatchQueue.main.async { [weak self] in
+                self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
             }
         }
         
@@ -464,6 +495,28 @@ struct SignUpView: UIViewRepresentable {
             }
         }
         
+        private func handleAddFamilyRequest(role: String) {
+            if role == "parent" {
+                DispatchQueue.main.async { [weak self] in
+                    guard let self, let rootVC = self.topViewController()
+                    else {
+                        return
+                    }
+                    self.presentCamera(from: rootVC, isTakePicture: false)
+                }
+            } else {
+                let jsScript = """
+                    (function() {
+                        window.onNativeLinkQRCodeShow && window.onNativeLinkQRCodeShow();
+                        return null;
+                    })();
+                    """
+                DispatchQueue.main.async { [weak self] in
+                    self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
+                }
+            }
+        }
+        
         private func handlePickProfileImage() {
             DispatchQueue.main.async { [weak self] in
                 guard let self, let rootVC = self.topViewController()
@@ -511,7 +564,7 @@ struct SignUpView: UIViewRepresentable {
             return top
         }
         
-        private func presentCamera(from viewController: UIViewController) {
+        private func presentCamera(from viewController: UIViewController, isTakePicture: Bool = true) {
             guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
                 sendErrorToJS(provider: "profileImage", message: "카메라를 사용할 수 없습니다.", code: nil)
                 return
@@ -519,6 +572,14 @@ struct SignUpView: UIViewRepresentable {
             let picker = UIImagePickerController()
             picker.sourceType = .camera
             picker.delegate = self
+            
+//            if isTakePicture == false {
+//                picker.showsCameraControls = false
+//                let customOverlay = UIView(frame: UIScreen.main.bounds)
+//                customOverlay.isUserInteractionEnabled = true
+//                picker.cameraOverlayView = customOverlay
+//            }
+            
             viewController.present(picker, animated: true)
         }
  
