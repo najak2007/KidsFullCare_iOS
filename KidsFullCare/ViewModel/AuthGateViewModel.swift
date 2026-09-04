@@ -386,7 +386,7 @@ final class AuthGateViewModel: ObservableObject {
                 else {
                     return
                 }
-                    
+                
                 if let familyArray = data["family"] as? [[String: Any]] {
                     if familyArray.isEmpty {
                         completion(false)
@@ -395,6 +395,7 @@ final class AuthGateViewModel: ObservableObject {
                         completion(alreadExists)
                     }
                 }
+                return
             }
             completion(false)
         }

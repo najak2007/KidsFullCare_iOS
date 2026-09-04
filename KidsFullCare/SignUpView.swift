@@ -13,6 +13,7 @@ import CryptoKit
 import Combine
 import FirebaseAuth
 import PhotosUI
+import UIKit
 
 enum HTTPMethod: String {
     case get = "GET"
@@ -469,12 +470,20 @@ struct SignUpView: UIViewRepresentable {
         }
         
         private func handleAddFamily(uid: String, name: String) {
+#if DEBUG
+            print("handleAddFamily uid: \(uid), name: \(name)")
+#endif
+            
             self.authGate?.addFamily(familyUid: uid, familyName: name) { isResult in
                 let payload: [String: Any] = [
                     "addUserName": name,
                     "addUserUid": uid,
                     "linkResult": "\(isResult.K)"
                 ]
+                
+#if DEBUG
+                print("handleAddFamily: \(payload)")
+#endif
                 
                 guard let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
                       let jsonString = String(data: jsonData, encoding: .utf8)
@@ -502,7 +511,7 @@ struct SignUpView: UIViewRepresentable {
                     else {
                         return
                     }
-                    self.presentCamera(from: rootVC, isTakePicture: false)
+                    presentQRScanner(from: rootVC)
                 }
             } else {
                 let jsScript = """
@@ -564,7 +573,26 @@ struct SignUpView: UIViewRepresentable {
             return top
         }
         
-        private func presentCamera(from viewController: UIViewController, isTakePicture: Bool = true) {
+        private func presentQRScanner(from viewController: UIViewController) {
+            let scannerVC = QRScannerViewController()
+            scannerVC.onCodeScanned = { [weak self] studentInfo in
+                if let studentInfo = studentInfo {
+                    Task {
+                        if let uid = Auth.auth().currentUser?.uid {
+                            if let matchUid: (Bool, String) = try await self?.authGate?.fetchStudentForCodeWithUid(code: studentInfo.code, uid: studentInfo.uid, parentUid: uid, parentName: studentInfo.name ?? DeviceIdentifier.shared.getUserForKey("displayName") ?? "") {
+                                if matchUid.0 {
+                                    self?.webView?.notifyIncomingLinkCode(uid: studentInfo.uid, name: studentInfo.name ?? "")
+                                } 
+                            }
+                        }
+                    }
+                }
+            }
+            scannerVC.modalPresentationStyle = .fullScreen
+            viewController.present(scannerVC, animated: true)
+        }
+        
+        private func presentCamera(from viewController: UIViewController) {
             guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
                 sendErrorToJS(provider: "profileImage", message: "카메라를 사용할 수 없습니다.", code: nil)
                 return
@@ -572,13 +600,6 @@ struct SignUpView: UIViewRepresentable {
             let picker = UIImagePickerController()
             picker.sourceType = .camera
             picker.delegate = self
-            
-//            if isTakePicture == false {
-//                picker.showsCameraControls = false
-//                let customOverlay = UIView(frame: UIScreen.main.bounds)
-//                customOverlay.isUserInteractionEnabled = true
-//                picker.cameraOverlayView = customOverlay
-//            }
             
             viewController.present(picker, animated: true)
         }
@@ -890,6 +911,9 @@ extension WKWebView {
     /// QR(유니버설 링크)로 앱이 열렸을 때, code/uid를 JS로 전달합니다.
     /// StudentLinkScreen 등에서 window.onNativeIncomingLinkCode로 받으면 됩니다.
     func notifyIncomingLinkCode(uid: String, name: String) {
+#if DEBUG
+        print("notifyIncomingLinkCode uid: \(uid), name: \(name)")
+#endif
         let payload: [String: Any] = ["uid": uid, "name": name]
         guard
             let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
