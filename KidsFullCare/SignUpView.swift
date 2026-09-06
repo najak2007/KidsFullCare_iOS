@@ -50,7 +50,8 @@ struct SignUpView: UIViewRepresentable {
         userContentController.add(context.coordinator, name: "qrCodeAuthTimeLimit")
         userContentController.add(context.coordinator, name: "fetchProfileImage")
         userContentController.add(context.coordinator, name: "addFamilyReq")
-
+        userContentController.add(context.coordinator, name: "sendMessage")
+        
         config.userContentController = userContentController
 
         let webView = WKWebView(frame: .zero, configuration: config)
@@ -248,7 +249,12 @@ struct SignUpView: UIViewRepresentable {
                 if let role = message.body as? String {
                     handleAddFamilyRequest(role: role)
                 }
-                   
+            case "sendMessage":
+                if let body = message.body as? [String: Any],
+                   let receiveUid = body["uid"] as? String,
+                   let receiveName = body["name"] as? String {
+                    handleSendMessage(uid: receiveUid, name: receiveName)
+                }
             default:
                 break
             }
@@ -303,7 +309,10 @@ struct SignUpView: UIViewRepresentable {
             sendErrorToJS(provider: "google", message: "Google 로그인은 아직 연결되지 않았습니다.", code: nil)
         }
 
-        // MARK: - Role 저장
+        // MARK: Message 송/수신
+        private func handleSendMessage(uid: String, name: String) {
+            chatViewController.send(MessageUserInfo(uid: uid, name: name))
+        }
 
         private func handleRoleSelect(role: String, extra: [String: Any]) {
             Task {

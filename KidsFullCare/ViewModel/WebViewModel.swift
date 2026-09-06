@@ -9,11 +9,15 @@ import SwiftUI
 import WebKit
 import Combine
 
+struct MessageUserInfo: Codable {
+    let uid: String
+    let name: String
+}
+
+var chatViewController = PassthroughSubject<MessageUserInfo, Never>()
+
 class WebViewModel: ObservableObject {
     var webView: WKWebView?
-    
-    // JS로 POST/PUT 응답 Callback을 보내는 메인 메서드
- 
     
     func sendCallback(method: String, path: String, status: Int, payload: [String: Any]) {
         guard let webView = webView else { return }
@@ -44,5 +48,10 @@ class WebViewModel: ObservableObject {
         } catch {
             print("JSON 변환 실패: \(error)")
         }
+    }
+}
+
+extension WebViewModel {
+    func handlePushNavigation(userInfo: MessageUserInfo) {
     }
 }

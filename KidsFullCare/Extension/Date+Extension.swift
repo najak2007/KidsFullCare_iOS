@@ -20,6 +20,14 @@ extension Date {
         return newID
     }
     
+    func getMessageID() -> String {
+        let date: Date = Date()
+        let dateFormatter: DateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyyMMddHHmmssSSSSSS"
+        let newID: String = dateFormatter.string(from: date)
+        return newID
+    }
+    
     func findCurrentYearInterval() -> Int {
         guard let startDate = Config.APP_START_DATE
         else {
