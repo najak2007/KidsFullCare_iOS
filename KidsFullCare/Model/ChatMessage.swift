@@ -9,6 +9,29 @@ import SwiftUI
 import Foundation
 import RealmSwift
 
+struct UserInfo: Codable, Hashable {
+    let userId: String
+    let userName: String
+    let profileImgBase64: String
+    
+    var profieImage: UIImage? {
+        guard !profileImgBase64.isEmpty,
+            let cleanBase64 = profileImgBase64.components(separatedBy: ",").last,
+            let imageData = Data(base64Encoded: cleanBase64)
+        else {
+            return nil
+        }
+        return UIImage(data: imageData)
+    }
+    
+    // 기본 생성자
+    init(userId: String, userName: String, profileImgBase64: String) {
+        self.userId = userId
+        self.userName = userName
+        self.profileImgBase64 = profileImgBase64
+    }
+}
+
 class ChatUserInfo: Object {
     @Persisted dynamic var uid: String = ""
     @Persisted dynamic var name: String = ""

@@ -253,7 +253,7 @@ struct SignUpView: UIViewRepresentable {
                 if let body = message.body as? [String: Any],
                    let receiveUid = body["uid"] as? String,
                    let receiveName = body["name"] as? String {
-                    handleSendMessage(uid: receiveUid, name: receiveName)
+                    handleSendMessage(userId: receiveUid, name: receiveName)
                 }
             default:
                 break
@@ -310,8 +310,18 @@ struct SignUpView: UIViewRepresentable {
         }
 
         // MARK: Message 송/수신
-        private func handleSendMessage(uid: String, name: String) {
-            chatViewController.send(MessageUserInfo(uid: uid, name: name))
+        private func handleSendMessage(userId: String, name: String) {
+            if let uid = Auth.auth().currentUser?.uid {
+                authGate?.fetchFamily(uid: uid, familyUid: userId) { userInfo in
+                    guard let userInfo = userInfo
+                    else {
+                        return
+                    }
+                    DispatchQueue.main.async {
+                        chatViewController.send(userInfo)
+                    }
+                }
+            }
         }
 
         private func handleRoleSelect(role: String, extra: [String: Any]) {

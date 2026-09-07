@@ -9,12 +9,7 @@ import SwiftUI
 import WebKit
 import Combine
 
-struct MessageUserInfo: Codable {
-    let uid: String
-    let name: String
-}
-
-var chatViewController = PassthroughSubject<MessageUserInfo, Never>()
+var chatViewController = PassthroughSubject<UserInfo, Never>()
 
 class WebViewModel: ObservableObject {
     var webView: WKWebView?
@@ -52,6 +47,6 @@ class WebViewModel: ObservableObject {
 }
 
 extension WebViewModel {
-    func handlePushNavigation(userInfo: MessageUserInfo) {
+    func handlePushNavigation(userInfo: UserInfo) {
     }
 }

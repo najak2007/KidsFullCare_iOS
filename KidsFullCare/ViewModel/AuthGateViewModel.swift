@@ -378,7 +378,7 @@ final class AuthGateViewModel: ObservableObject {
         return nil
     }
     
-    func fetchFamily(uid: String, familyUid: String,  completion: @escaping(Bool) -> Void) {
+    func fetchFamily(uid: String, familyUid: String,  completion: @escaping(UserInfo?) -> Void) {
         db.collection("users").document(uid).getDocument { snapshot, error in
             if error == nil {
                 guard let document = snapshot, document.exists,
@@ -389,15 +389,22 @@ final class AuthGateViewModel: ObservableObject {
                 
                 if let familyArray = data["family"] as? [[String: Any]] {
                     if familyArray.isEmpty {
-                        completion(false)
+                        completion(nil)
                     } else {
-                        let alreadExists = familyArray.contains { ($0["uid"] as? String) == familyUid }
-                        completion(alreadExists)
+                        if let family = familyArray.first(where: { ($0["uid"] as? String) == familyUid }) {
+                            Task {
+                                let profileImageBase64 = try await self.fetchProfile(fetchUid: familyUid)
+                                let userInfo = UserInfo(userId: familyUid, userName: family["name"] as? String ?? "", profileImgBase64: profileImageBase64)
+                                completion(userInfo)
+                            }
+                        } else {
+                            completion(nil)
+                        }
                     }
                 }
                 return
             }
-            completion(false)
+            completion(nil)
         }
     }
     
@@ -407,8 +414,8 @@ final class AuthGateViewModel: ObservableObject {
             return completion(.에러)
         }
         
-        self.fetchFamily(uid: user.uid, familyUid: familyUid) { isExists in
-            if !isExists {
+        self.fetchFamily(uid: user.uid, familyUid: familyUid) { existFamily in
+            if existFamily != nil {
                 Task {
                     let familyInfo: [String: Any] = [
                         "name": familyName ?? "",

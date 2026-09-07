@@ -60,21 +60,17 @@ struct ContentView: View {
                         .transition(.opacity)
                 }
             }
-            .navigationDestination(for: String.self) { value in
-                ChattingView()
+            .navigationDestination(for: UserInfo.self) { userInfo in
+                ChattingView(userInfo: userInfo)
             }
         }
-        .onReceive(chatViewController) { messageUserInfo in
-            path.append(messageUserInfo.uid)
+        .onReceive(chatViewController) { userInfo in
+            path.append(userInfo)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .animation(.easeOut(duration: 0.25), value: webViewFirstLoadDone)
         .onReceive(bioAuthRequest) { password in
-            if authGateViewModel.isUseBiometricAck == .사용여부_질문필요 {
-                self.password = password
-                showAlert.toggle()
-            }
-            
+            emailWithPasswordLoginBioUseAsk(password: password)
         }
         .onReceive(loginSuccess) { isLogin in
             if isLogin, pendingLink != nil {
@@ -117,7 +113,7 @@ struct ContentView: View {
                 }
             }
         } message: {
-            Text("해당 계정은 부모님이 아닙니다.")
+            Text("해당 계정은 부모님 역할이 아닙니다.")
         }
         .alert("인증 오류", isPresented: $showMatchError) {
             Button("확인", role: .none) {
@@ -132,24 +128,43 @@ struct ContentView: View {
 #if DEBUG
             print("KidsFullCare scenePhase oldValue = \(oldValue), newValue = \(newValue)")
 #endif
-            if oldValue == .active, newValue == .inactive {
-                if let _ = Auth.auth().currentUser {
-                    backgroundStateTime = Date()
-                }
-                
-            } else if oldValue == .background, newValue == .inactive {
-                if let _ = Auth.auth().currentUser,
-                   Date().timeIntervalSince(backgroundStateTime) > 600 {
-                    do {
-                        self.toast = Toast(type: .info, title: "", message: "10분 동안 사용하지 않아 자동으로 로그아웃되었습니다.")
-                        try Auth.auth().signOut()
-                    } catch {
-                        
-                    }
-                }
-            }
+            handleScenePhaseChange(from: oldValue, to: newValue)
         }
         .toastView(toast: $toast)
+    }
+    
+    private func pushChattingView(userUid: String) {
+        
+    }
+    
+    private func emailWithPasswordLoginBioUseAsk(password: String) {
+        if authGateViewModel.isUseBiometricAck == .사용여부_질문필요 {
+            self.password = password
+            showAlert.toggle()
+        }
+    }
+    
+    private func handleScenePhaseChange(from oldValue: ScenePhase, to newValue: ScenePhase) {
+        guard Auth.auth().currentUser != nil else { return }
+        
+        if oldValue == .active && newValue == .inactive {
+            backgroundStateTime = Date()
+        } else if oldValue == .background && newValue == .inactive {
+            let elapsedTime = Date().timeIntervalSince(backgroundStateTime)
+            if elapsedTime > 600 {
+                logoutDueToInactivity()
+            }
+        }
+    }
+
+    private func logoutDueToInactivity() {
+        do {
+            try Auth.auth().signOut()
+            path = NavigationPath()
+            self.toast = Toast(type: .info, title: "", message: "10분 동안 사용하지 않아 자동으로 로그아웃되었습니다.")
+        } catch {
+            print("Sign out error: \(error.localizedDescription)")
+        }
     }
     
     /// https://kidsfullcare.app/link?code=123456&uid=xxx 형태의 유니버설 링크를 받아서

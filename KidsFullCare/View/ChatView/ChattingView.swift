@@ -12,88 +12,97 @@ import Combine
 struct ChattingView: View {
     @StateObject private var viewModel = ChatMessageViewModel()
     @State private var inputText: String = ""
+    @State private var userInfo: [UserInfo] = []
+    
     @Namespace private var bottomID
     
+    init(userInfo: UserInfo) {
+        _userInfo = State(initialValue: [userInfo])
+    }
+    
     var body: some View {
-         VStack(spacing: 0) {
-             ScrollViewReader { proxy in
-                 ScrollView {
-                     LazyVStack(alignment: .leading, spacing: 12) {
-                         ForEach(viewModel.messages) { message in
-                             MessageRow(message: message)
-                         }
-                         Color.clear
-                             .frame(height: 1)
-                             .id(bottomID)
-                     }
-                     .padding(.horizontal, 12)
-                     .padding(.top, 12)
-                 }
-                 .background(Color(.systemGroupedBackground))
-                 .onChange(of: viewModel.messages) { _ in
-                     withAnimation(.easeOut(duration: 0.2)) {
-                         proxy.scrollTo(bottomID, anchor: .bottom)
-                     }
-                 }
-                 .onAppear {
-                     proxy.scrollTo(bottomID, anchor: .bottom)
-                 }
-             }
+        VStack(spacing: 0) {
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 12) {
+                        ForEach(viewModel.messages) { message in
+                            MessageRow(message: message, userInfo: userInfo)
+                        }
+                        Color.clear
+                            .frame(height: 1)
+                            .id(bottomID)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.top, 12)
+                }
+                .background(Color(.systemGroupedBackground))
+                .onChange(of: viewModel.messages) { oldValue, newValue in
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        proxy.scrollTo(bottomID, anchor: .bottom)
+                    }
+                }
+                .onAppear {
+                    proxy.scrollTo(bottomID, anchor: .bottom)
+                }
+            }
+            
+            Divider()
+            
+            ChatInputBar(text: $inputText) {
+                viewModel.send(inputText)
+                inputText = ""
+            }
+        }
+        .navigationTitle(chattingForTitle())
+        .navigationBarTitleDisplayMode(.inline)
+    }
+    
+    private func chattingForTitle() -> String {
+        if !userInfo.isEmpty {
+            if let userName = userInfo.first?.userName, !userName.isEmpty {
+                return "\(userName) 님에게 알림 보내기"
+            }
+        }
+        return "알림 보내기"
+    }
+}
   
-             Divider()
+// MARK: - Message Row (좌/우 정렬 + 프로필)
+struct MessageRow: View {
+    let message: ChatMessage
+    let userInfo: [UserInfo]
   
-             ChatInputBar(text: $inputText) {
-                 viewModel.send(inputText)
-                 inputText = ""
-             }
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 8) {
+            if message.isMine {
+                Spacer(minLength: 40)
+                    timestamp
+                    bubble
+            } else {
+                profileImage
+                bubble
+                timestamp
+                Spacer(minLength: 40)
+            }
          }
-         .navigationTitle("채팅방")
-         .navigationBarTitleDisplayMode(.inline)
-     }
- }
-  
- // MARK: - Message Row (좌/우 정렬 + 프로필)
-  
- struct MessageRow: View {
-     let message: ChatMessage
-  
-     var body: some View {
-         HStack(alignment: .bottom, spacing: 8) {
-             if message.isMine {
-                 Spacer(minLength: 40)
-                 timestamp
-                 bubble
-             } else {
-//                 profileImage
-                 bubble
-                 timestamp
-                 Spacer(minLength: 40)
-             }
-         }
      }
   
-//     private var profileImage: some View {
-//         AsyncImage(url: message.profileImageURL) { phase in
-//             switch phase {
-//             case .success(let image):
-//                 image
-//                     .resizable()
-//                     .scaledToFill()
-//             case .failure:
-//                 placeholderProfile
-//             case .empty:
-//                 placeholderProfile
-//                     .overlay(
-//                         ProgressView()
-//                             .scaleEffect(0.6)
-//                     )
-//             @unknown default:
-//                 placeholderProfile
-//             }
-//         }
-//         .frame(width: 36, height: 36)
-//         .clipShape(Circle())
-//     }
+    private var profileImage: some View {
+        // 1. 배열 전체 순회 대신 first(where:) 사용
+        // 2. Base64 접두사(data:image/...) 제거 로직 포함 (필요 시)
+        Group {
+            if let user = userInfo.first(where: { $0.userId == message.userUid }),
+               let profieImage = user.profieImage {
+                Image(uiImage: profieImage)
+                        .resizable()
+                        .scaledToFill()
+            } else {
+                placeholderProfile
+            }
+        }
+        .frame(width: 36, height: 36)
+        .clipShape(Circle())
+     }
   
      private var placeholderProfile: some View {
          Circle()
@@ -123,11 +132,11 @@ struct ChattingView: View {
              .font(.system(size: 10))
              .foregroundColor(.gray)
      }
- }
+}
   
- // MARK: - Bubble Shape (꼬리 달린 말풍선)
+// MARK: - Bubble Shape (꼬리 달린 말풍선)
   
- struct BubbleShape: Shape {
+struct BubbleShape: Shape {
      let isMine: Bool
      var cornerRadius: CGFloat = 16
      var tailSize: CGFloat = 7
@@ -177,104 +186,119 @@ struct ChattingView: View {
          path.closeSubpath()
          return path
      }
- }
-  
- // MARK: - Input Bar (최대 3줄까지 가변 높이)
-  
- struct ChatInputBar: View {
-     @Binding var text: String
-     var onSend: () -> Void
-  
-     // 1줄 기준 높이와 최대 3줄 높이를 계산하기 위한 값
-     private let lineHeight: CGFloat = 20
-     private let verticalPadding: CGFloat = 16 // 상하 패딩 합
-     private let maxLines: Int = 3
-  
-     private var textHeight: CGFloat {
-         let lineCount = max(1, min(maxLines, currentLineCount))
-         return CGFloat(lineCount) * lineHeight
-     }
-  
-     private var currentLineCount: Int {
-         // 개행 기준 + 대략적인 줄바꿈 추정 (완전 정확하진 않지만 3줄 제한 목적엔 충분)
-         let newlineCount = text.components(separatedBy: "\n").count
-         return newlineCount
-     }
-  
-     var body: some View {
-         HStack(alignment: .bottom, spacing: 8) {
-             Button(action: {}) {
-                 Image(systemName: "plus")
-                     .foregroundColor(.gray)
-                     .frame(width: 28, height: 28)
-             }
-  
-             ExpandingTextView(
-                 text: $text,
-                 maxLines: maxLines,
-                 lineHeight: lineHeight
-             )
-             .frame(minHeight: lineHeight + verticalPadding, maxHeight: CGFloat(maxLines) * lineHeight + verticalPadding)
-             .padding(.horizontal, 10)
-             .background(
-                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                     .fill(Color(.systemGray6))
-             )
-  
-             Button(action: onSend) {
-                 Image(systemName: "arrow.up.circle.fill")
-                     .font(.system(size: 30))
-                     .foregroundColor(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .gray.opacity(0.4) : .yellow)
-             }
-             .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-         }
-         .padding(.horizontal, 10)
-         .padding(.vertical, 8)
-         .background(Color(.systemBackground))
-     }
- }
-  
- // MARK: - UITextView 기반 가변 높이(최대 3줄) 텍스트 입력
-  
- struct ExpandingTextView: UIViewRepresentable {
-     @Binding var text: String
-     let maxLines: Int
-     let lineHeight: CGFloat
-  
-     func makeUIView(context: Context) -> UITextView {
-         let textView = UITextView()
-         textView.delegate = context.coordinator
-         textView.font = .systemFont(ofSize: 15)
-         textView.backgroundColor = .clear
-         textView.isScrollEnabled = false
-         textView.textContainerInset = UIEdgeInsets(top: 8, left: 0, bottom: 8, right: 0)
-         textView.textContainer.lineFragmentPadding = 0
-         return textView
-     }
-  
-     func updateUIView(_ uiView: UITextView, context: Context) {
-         if uiView.text != text {
-             uiView.text = text
-         }
-         // 최대 라인 수를 초과하면 스크롤 활성화, 그 이하면 스크롤 비활성화(자동 높이 증가)
-         let estimatedLines = uiView.contentSize.height / lineHeight
-         uiView.isScrollEnabled = estimatedLines > CGFloat(maxLines)
-     }
-  
-     func makeCoordinator() -> Coordinator {
-         Coordinator(self)
-     }
-  
-     class Coordinator: NSObject, UITextViewDelegate {
-         var parent: ExpandingTextView
-  
-         init(_ parent: ExpandingTextView) {
-             self.parent = parent
-         }
-  
-         func textViewDidChange(_ textView: UITextView) {
-             parent.text = textView.text
-         }
-     }
 }
   
+// MARK: - Input Bar (빈 상태 1줄 → 최대 3줄까지 가변 높이 → 스크롤)
+ 
+struct ChatInputBar: View {
+    @Binding var text: String
+    var onSend: () -> Void
+ 
+    // 1줄 기준 높이와 최대 3줄 높이를 계산하기 위한 값
+    private let lineHeight: CGFloat = 20
+    private let verticalPadding: CGFloat = 16 // 상하 패딩 합
+    private let maxLines: Int = 3
+ 
+    private var minHeight: CGFloat { lineHeight + verticalPadding }
+    private var maxHeight: CGFloat { CGFloat(maxLines) * lineHeight + verticalPadding }
+ 
+    // ExpandingTextView가 실측한 실제 컨텐츠 높이 (min~max 사이로 clamp된 값)
+    @State private var textViewHeight: CGFloat = 36
+ 
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 8) {
+            Button(action: {}) {
+                Image(systemName: "plus")
+                    .foregroundColor(.gray)
+                    .frame(width: 28, height: 28)
+            }
+ 
+            ExpandingTextView(
+                text: $text,
+                height: $textViewHeight,
+                minHeight: minHeight,
+                maxHeight: maxHeight
+            )
+            .frame(height: textViewHeight) // 실측 높이로 고정 (빈 상태=1줄, 입력 증가 시 최대 3줄까지 증가)
+            .padding(.horizontal, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color(.systemGray6))
+            )
+ 
+            Button(action: onSend) {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 30))
+                    .foregroundColor(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .gray.opacity(0.4) : .yellow)
+            }
+            .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Color(.systemBackground))
+        .onAppear {
+            textViewHeight = minHeight
+        }
+    }
+}
+ 
+// MARK: - UITextView 기반 가변 높이(빈 상태 1줄 → 최대 3줄 → 스크롤) 텍스트 입력
+ 
+struct ExpandingTextView: UIViewRepresentable {
+    @Binding var text: String
+    @Binding var height: CGFloat
+    let minHeight: CGFloat
+    let maxHeight: CGFloat
+ 
+    func makeUIView(context: Context) -> UITextView {
+        let textView = UITextView()
+        textView.delegate = context.coordinator
+        textView.font = .systemFont(ofSize: 15)
+        textView.backgroundColor = .clear
+        textView.isScrollEnabled = false
+        textView.textContainerInset = UIEdgeInsets(top: 8, left: 0, bottom: 8, right: 0)
+        textView.textContainer.lineFragmentPadding = 0
+        return textView
+    }
+ 
+    func updateUIView(_ uiView: UITextView, context: Context) {
+        if uiView.text != text {
+            uiView.text = text
+        }
+        recalculateHeight(uiView)
+    }
+ 
+    /// 실제 컨텐츠 높이를 측정해서 min~max 사이로 clamp한 뒤 height 바인딩에 반영.
+    /// 최대 높이를 넘으면 그때부터 내부 스크롤을 켠다.
+    private func recalculateHeight(_ uiView: UITextView) {
+        let width = uiView.bounds.width > 0 ? uiView.bounds.width : UIScreen.main.bounds.width
+        let fittingSize = uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
+ 
+        let clampedHeight = min(max(fittingSize.height, minHeight), maxHeight)
+        uiView.isScrollEnabled = fittingSize.height > maxHeight
+ 
+        if abs(height - clampedHeight) > 0.5 {
+            DispatchQueue.main.async {
+                height = clampedHeight
+            }
+        }
+    }
+ 
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+ 
+    class Coordinator: NSObject, UITextViewDelegate {
+        var parent: ExpandingTextView
+ 
+        init(_ parent: ExpandingTextView) {
+            self.parent = parent
+        }
+ 
+        func textViewDidChange(_ textView: UITextView) {
+            parent.text = textView.text
+            parent.recalculateHeight(textView)
+        }
+    }
+}
+ 
