@@ -51,6 +51,8 @@ struct SignUpView: UIViewRepresentable {
         userContentController.add(context.coordinator, name: "fetchProfileImage")
         userContentController.add(context.coordinator, name: "addFamilyReq")
         userContentController.add(context.coordinator, name: "sendMessage")
+        userContentController.add(context.coordinator, name: "schoolSearch")
+        userContentController.add(context.coordinator, name: "schoolRegisterSave")
         
         config.userContentController = userContentController
 
@@ -255,6 +257,14 @@ struct SignUpView: UIViewRepresentable {
                    let receiveName = body["name"] as? String {
                     handleSendMessage(userId: receiveUid, name: receiveName)
                 }
+            case "schoolSearch":
+                if let schoolName = message.body as? String {
+                    handleSchoolSearch(schoolName: schoolName)
+                }
+            case "schoolRegisterSave":
+                if let schoolName = message.body as? String {
+                    handleSchoolRegisterSave(schoolName: schoolName)
+                }
             default:
                 break
             }
@@ -274,6 +284,14 @@ struct SignUpView: UIViewRepresentable {
             return true
         }
 
+        private func handleSchoolSearch(schoolName: String) {
+            
+        }
+        
+        private func handleSchoolRegisterSave(schoolName: String) {
+            
+        }
+        
         // MARK: - Apple Sign In
 
         private func startAppleSignIn() {
