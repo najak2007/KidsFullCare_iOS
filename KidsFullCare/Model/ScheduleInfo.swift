@@ -8,6 +8,18 @@
 import Foundation
 import RealmSwift
 
+struct SchoolInfo: Codable {
+    var ATPT_OFCDC_SC_CODE: String = ""              // 시도교육청코드
+    var SD_SCHUL_CODE: String = ""                   // 행정표준코드
+    var SCHUL_NM: String = ""                        // 학교명
+    var SCHUL_KND_SC_NM: String = ""                 // 학교종류명
+    var LCTN_SC_NM: String = ""                      // 시도명
+    var FOND_SC_NM: String = ""                      // 설립명
+    var ORG_RDNMA: String = ""                       // 도로 주소
+    var ORG_RDNDA: String = ""                       // 도로 상세 주소
+    var ORG_TELNO: String = ""                       // 전화번호
+}
+
 struct ScheduleInfo: Codable, Hashable {
     var id: String = UUID().uuidString
     let schedule: Date
@@ -50,6 +62,9 @@ class SchoolInfoData: Object, Comparable, Identifiable {
     @Persisted dynamic var SCHUL_KND_SC_NM: String = ""                 // 학교종류명
     @Persisted dynamic var LCTN_SC_NM: String = ""                      // 시도명
     @Persisted dynamic var FOND_SC_NM: String = ""                      // 설립명
+    @Persisted dynamic var ORG_RDNMA: String = ""                       // 도로 주소
+    @Persisted dynamic var ORG_RDNDA: String = ""                       // 도로 상세 주소
+    @Persisted dynamic var ORG_TELNO: String = ""                       // 전화번호
     @Persisted dynamic var registerDate: Date = Date()
     
     static func < (lhs: SchoolInfoData, rhs: SchoolInfoData) -> Bool {
