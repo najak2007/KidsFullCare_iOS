@@ -26,6 +26,7 @@ enum HTTPMethod: String {
 struct SignUpView: UIViewRepresentable {
     @ObservedObject var userViewModel: UserViewModel
     @ObservedObject var authGate: AuthGateViewModel
+    @StateObject private var schoolViewModel = SchoolViewModel()
     
     let url: URL
     var onFirstLoad: (() -> Void)?
@@ -52,6 +53,7 @@ struct SignUpView: UIViewRepresentable {
         userContentController.add(context.coordinator, name: "addFamilyReq")
         userContentController.add(context.coordinator, name: "sendMessage")
         userContentController.add(context.coordinator, name: "schoolRegisterSave")
+        userContentController.add(context.coordinator, name: "schoolInfoReq")
         
         config.userContentController = userContentController
 
@@ -84,22 +86,25 @@ struct SignUpView: UIViewRepresentable {
     func updateUIView(_ uiView: WKWebView, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(viewModel: userViewModel)
+        Coordinator(viewModel: userViewModel, schoolViewModel: schoolViewModel)
     }
 
     class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler, WKUIDelegate, UIGestureRecognizerDelegate {
         let userViewModel: UserViewModel
+        let schoolViewModel: SchoolViewModel
         var isInitialLoad: Bool = true
         private weak var webView: WKWebView?
         private var authGate: AuthGateViewModel?
+        
         private var stateCancellable: AnyCancellable?
         private var onFirstLoad: (() -> Void)?
 
         // Apple 로그인 요청 시 사용한 원본(해시 전) nonce
         private var currentNonce: String?
 
-        init(viewModel: UserViewModel) {
+        init(viewModel: UserViewModel, schoolViewModel: SchoolViewModel) {
             self.userViewModel = viewModel
+            self.schoolViewModel = schoolViewModel
         }
 
         /// WebView와 AuthGateViewModel을 연결하고, 상태가 바뀔 때마다 JS로 알려줍니다.
@@ -265,6 +270,8 @@ struct SignUpView: UIViewRepresentable {
                         
                     }
                 }
+            case "schoolInfoReq":
+                handleSendSchoolInfo()
             default:
                 break
             }
@@ -283,13 +290,17 @@ struct SignUpView: UIViewRepresentable {
             }
             return true
         }
-
-        private func handleSchoolSearch(schoolName: String) {
+        
+        private func handleSchoolRegisterSave(schoolInfo: SchoolInfo?) {
             
         }
         
-        private func handleSchoolRegisterSave(schoolInfo: SchoolInfo) {
-            
+        private func handleSendSchoolInfo() {
+            if let uid = Auth.auth().currentUser?.uid {
+                Task {
+                    let schoolInfo = try? await schoolViewModel.fetchSchoolInfo(uid: uid)
+                }
+            }
         }
         
         // MARK: - Apple Sign In

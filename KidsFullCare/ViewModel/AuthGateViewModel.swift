@@ -378,7 +378,7 @@ final class AuthGateViewModel: ObservableObject {
         return nil
     }
     
-    func fetchFamily(uid: String, familyUid: String,  completion: @escaping(UserInfo?) -> Void) {
+    func fetchFamily(uid: String, familyUid: String, completion: @escaping(UserInfo?) -> Void) {
         db.collection("users").document(uid).getDocument { snapshot, error in
             if error == nil {
                 guard let document = snapshot, document.exists,
