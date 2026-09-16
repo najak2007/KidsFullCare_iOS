@@ -36,6 +36,7 @@ enum AddFamilyState: String, Equatable {
     case 추가
     case 중복
     case 에러
+    case 신규
     
     var K: String {
         return self.rawValue
@@ -378,33 +379,28 @@ final class AuthGateViewModel: ObservableObject {
         return nil
     }
     
-    func fetchFamily(uid: String, familyUid: String, completion: @escaping(UserInfo?) -> Void) {
+    func fetchFamily(uid: String, familyUid: String, completion: @escaping(AddFamilyState) -> Void) {
         db.collection("users").document(uid).getDocument { snapshot, error in
             if error == nil {
                 guard let document = snapshot, document.exists,
                       let data = document.data()
                 else {
+                    completion(.신규)
                     return
                 }
                 
-                if let familyArray = data["family"] as? [[String: Any]] {
-                    if familyArray.isEmpty {
-                        completion(nil)
-                    } else {
-                        if let family = familyArray.first(where: { ($0["uid"] as? String) == familyUid }) {
-                            Task {
-                                let profileImageBase64 = try await self.fetchProfile(fetchUid: familyUid)
-                                let userInfo = UserInfo(userId: familyUid, userName: family["name"] as? String ?? "", profileImgBase64: profileImageBase64)
-                                completion(userInfo)
-                            }
-                        } else {
-                            completion(nil)
-                        }
-                    }
+                guard let familyArray = data["family"] as? [[String: Any]],
+                      let family = familyArray.first(where: { ($0["uid"] as? String) == familyUid })
+                else {
+                    completion(.신규)
+                    return
                 }
-                return
+                
+                completion(.중복)
+                
+            } else {
+                completion(.에러)
             }
-            completion(nil)
         }
     }
     
@@ -414,8 +410,8 @@ final class AuthGateViewModel: ObservableObject {
             return completion(.에러)
         }
         
-        self.fetchFamily(uid: user.uid, familyUid: familyUid) { existFamily in
-            if existFamily != nil {
+        self.fetchFamily(uid: user.uid, familyUid: familyUid) { addFamilyState in
+            if addFamilyState == .신규 {
                 Task {
                     let familyInfo: [String: Any] = [
                         "name": familyName ?? "",
@@ -427,7 +423,7 @@ final class AuthGateViewModel: ObservableObject {
                     return completion(.추가)
                 }
             }
-            return completion(.중복)
+            return completion(addFamilyState)
         }
     }
     
