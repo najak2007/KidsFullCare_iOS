@@ -313,7 +313,11 @@ struct SignUpView: UIViewRepresentable {
         private func handleSendSchoolInfo() {
             if let uid = Auth.auth().currentUser?.uid {
                 Task {
-                    let schoolInfo = try? await schoolViewModel.fetchSchoolInfo(uid: uid)
+                    do {
+                        let schoolInfo = try? await schoolViewModel.fetchSchoolInfo(uid: uid)
+                    } catch {
+                        
+                    }
                 }
             }
         }
