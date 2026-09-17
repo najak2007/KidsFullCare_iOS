@@ -140,7 +140,13 @@ struct SignUpView: UIViewRepresentable {
                 payload["role"] = role
                 payload["name"] = DeviceIdentifier.shared.getUserForKey("displayName")
                 payload["imageBase64"] = profileImg
-                payload["familyMembers"] = authGate?.familyMembers
+                Task {
+                    do {
+                        payload["familyMembers"] = try await authGate?.fetchFamilyMembers()
+                    } catch {
+                        
+                    }
+                }
             case .signUp:
                 payload["status"] = "signUp"
             }
@@ -226,7 +232,11 @@ struct SignUpView: UIViewRepresentable {
                 handleGenerateLinkCode()
             case "resetDevice":
                 Task {
-                    try await authGate?.resetDevice()
+                    do {
+                        try await authGate?.resetDevice()
+                    } catch {
+                        
+                    }
                 }
             case "inputFocus":
                 if let fieldName = message.body as? String {
@@ -341,13 +351,15 @@ struct SignUpView: UIViewRepresentable {
         // MARK: Message 송/수신
         private func handleSendMessage(userId: String, name: String) {
             if let uid = Auth.auth().currentUser?.uid {
-                authGate?.fetchFamily(uid: uid, familyUid: userId) { userInfo in
+                authGate?.fetchFamily(uid: uid, familyUid: userId) { addFamilyState, userInfo in
                     guard let userInfo = userInfo
                     else {
                         return
                     }
-                    DispatchQueue.main.async {
-                        chatViewController.send(userInfo)
+                    if addFamilyState == .중복 {
+                        DispatchQueue.main.async {
+                            chatViewController.send(userInfo)
+                        }
                     }
                 }
             }
@@ -425,6 +437,7 @@ struct SignUpView: UIViewRepresentable {
         private func sendQRCodeAuthResultHandler(isResult: AddFamilyState, codeId: String, familyUid: String, familyName: String) {
             let payload: [String: Any] = [
                 "name": familyName,
+                "uid": familyUid,
                 "result": "\(isResult.K)",
                 "code": codeId
             ]
@@ -491,7 +504,11 @@ struct SignUpView: UIViewRepresentable {
         
         private func sendBiometricLoginResult(email: String, password: String) {
             Task {
-                try await Auth.auth().signIn(withEmail: email, password: password)
+                do {
+                    try await Auth.auth().signIn(withEmail: email, password: password)
+                } catch {
+                    
+                }
             }
             
             let payload: [String: Any] = [
@@ -546,8 +563,8 @@ struct SignUpView: UIViewRepresentable {
                     })();
                     """
                 
-                DispatchQueue.main.async { [weak self] in
-                    self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
+                DispatchQueue.main.async {
+                    self.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
                 }
             }
         }
@@ -626,12 +643,16 @@ struct SignUpView: UIViewRepresentable {
             scannerVC.onCodeScanned = { [weak self] studentInfo in
                 if let studentInfo = studentInfo {
                     Task {
-                        if let uid = Auth.auth().currentUser?.uid {
-                            if let matchUid: (Bool, String) = try await self?.authGate?.fetchStudentForCodeWithUid(code: studentInfo.code, uid: studentInfo.uid, parentUid: uid, parentName: studentInfo.name ?? DeviceIdentifier.shared.getUserForKey("displayName") ?? "") {
-                                if matchUid.0 {
-                                    self?.webView?.notifyIncomingLinkCode(uid: studentInfo.uid, name: studentInfo.name ?? "")
-                                } 
+                        do {
+                            if let uid = Auth.auth().currentUser?.uid {
+                                if let matchUid: (Bool, String) = try await self?.authGate?.fetchStudentForCodeWithUid(code: studentInfo.code, uid: studentInfo.uid, parentUid: uid, parentName: studentInfo.name ?? DeviceIdentifier.shared.getUserForKey("displayName") ?? "") {
+                                    if matchUid.0 {
+                                        self?.webView?.notifyIncomingLinkCode(uid: studentInfo.uid, name: studentInfo.name ?? "")
+                                    }
+                                }
                             }
+                        } catch {
+                            
                         }
                     }
                 }
@@ -681,7 +702,11 @@ struct SignUpView: UIViewRepresentable {
                 webView?.evaluateJavaScript(jsScript, completionHandler: { [weak self] _ ,_  in
                     if let uid = Auth.auth().currentUser?.uid {
                         Task {
-                            try await self?.authGate?.saveProfileImage(uid: uid, imageBase64: "")
+                            do {
+                                try await self?.authGate?.saveProfileImage(uid: uid, imageBase64: "")
+                            } catch {
+                                
+                            }
                         }
                     }
                 })
@@ -701,7 +726,11 @@ struct SignUpView: UIViewRepresentable {
             
             if let uid = Auth.auth().currentUser?.uid {
                 Task {
-                    try await self.authGate?.saveProfileImage(uid: uid, imageBase64: profileImageBase64)
+                    do {
+                        try await self.authGate?.saveProfileImage(uid: uid, imageBase64: profileImageBase64)
+                    } catch {
+                        
+                    }
                 }
                 let payload: [String: Any] = ["imageBase64": profileImageBase64]
                 guard

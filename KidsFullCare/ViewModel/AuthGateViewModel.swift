@@ -102,8 +102,12 @@ final class AuthGateViewModel: ObservableObject {
                         print("인증 유효")
 #endif
                     case .revoked, .notFound:
-                        Task { @MainActor in
-                            try await self.resetDevice()
+                        Task {
+                            do {
+                                try await self.resetDevice()
+                            } catch {
+                                
+                            }
                         }
                     default: break
                     }
@@ -118,6 +122,31 @@ final class AuthGateViewModel: ObservableObject {
         }
     }
 
+    
+    func fetchFamilyMembers() async throws -> [[String: Any]] {
+        if let user = Auth.auth().currentUser {
+            do {
+                let snapshot = try await db.collection("users").document(user.uid).getDocument()
+                
+                if let role = snapshot.data()?["role"] as? String, !role.isEmpty {
+                    if let familyArray = snapshot.data()?["family"] as? [[String: Any]] {
+                        if !familyArray.isEmpty {
+                            return familyArray.map { member -> [String: Any] in
+                                return [
+                                    "name": member["name"] as? String ?? "",
+                                    "uid": member["uid"] as? String ?? "",
+                                ]
+                            }
+                        }
+                    }
+                }
+            } catch {
+                
+            }
+        }
+        return []
+    }
+    
     private func handleAuthChange(user: FirebaseAuth.User?) async {
         if isReseting {
             return
@@ -379,27 +408,28 @@ final class AuthGateViewModel: ObservableObject {
         return nil
     }
     
-    func fetchFamily(uid: String, familyUid: String, completion: @escaping(AddFamilyState) -> Void) {
+    func fetchFamily(uid: String, familyUid: String, completion: @escaping(AddFamilyState, UserInfo?) -> Void) {
         db.collection("users").document(uid).getDocument { snapshot, error in
             if error == nil {
                 guard let document = snapshot, document.exists,
                       let data = document.data()
                 else {
-                    completion(.신규)
+                    completion(.신규, nil)
                     return
                 }
                 
                 guard let familyArray = data["family"] as? [[String: Any]],
-                      let family = familyArray.first(where: { ($0["uid"] as? String) == familyUid })
+                      let family = familyArray.first(where: { ($0["uid"] as? String) == familyUid }),
+                      let uid = family["uid"] as? String,
+                      let name = family["name"] as? String
                 else {
-                    completion(.신규)
+                    completion(.신규, nil)
                     return
                 }
-                
-                completion(.중복)
+                completion(.중복, UserInfo(userId: uid, userName: name, profileImgBase64: ""))
                 
             } else {
-                completion(.에러)
+                completion(.에러, nil)
             }
         }
     }
@@ -410,17 +440,23 @@ final class AuthGateViewModel: ObservableObject {
             return completion(.에러)
         }
         
-        self.fetchFamily(uid: user.uid, familyUid: familyUid) { addFamilyState in
+        self.fetchFamily(uid: user.uid, familyUid: familyUid) { addFamilyState, userInfo in
             if addFamilyState == .신규 {
                 Task {
-                    let familyInfo: [String: Any] = [
-                        "name": familyName ?? "",
-                        "uid": familyUid
-                    ]
-                    try await self.db.collection("users").document(user.uid).updateData([
-                        "family": FieldValue.arrayUnion([familyInfo])
-                    ])
-                    return completion(.추가)
+                    do {
+                        let familyInfo: [String: Any] = [
+                            "name": familyName ?? "",
+                            "uid": familyUid
+                        ]
+                        try await self.db.collection("users").document(user.uid).updateData([
+                            "family": FieldValue.arrayUnion([familyInfo])
+                        ])
+                        return completion(.추가)
+                    } catch {
+#if DEBUG
+                        print("Error updating family info: \(error)")
+#endif
+                    }
                 }
             }
             return completion(addFamilyState)
