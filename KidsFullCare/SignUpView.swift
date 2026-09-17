@@ -143,14 +143,19 @@ struct SignUpView: UIViewRepresentable {
                 Task {
                     do {
                         payload["familyMembers"] = try await authGate?.fetchFamilyMembers()
+                        sendAuthState(payload: payload)
                     } catch {
                         
                     }
                 }
+                return
             case .signUp:
                 payload["status"] = "signUp"
             }
+            sendAuthState(payload: payload)
+        }
 
+        func sendAuthState(payload: [String: Any]) {
             guard
                 let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
                 let jsonString = String(data: jsonData, encoding: .utf8)
@@ -164,8 +169,8 @@ struct SignUpView: UIViewRepresentable {
                 """
             webView?.evaluateJavaScript(jsScript, completionHandler: nil)
         }
-
-
+        
+        
         func webView(
             _ webView: WKWebView,
             contextMenuConfigurationForElement elementInfo: WKContextMenuElementInfo,
