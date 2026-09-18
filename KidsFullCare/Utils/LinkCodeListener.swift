@@ -65,4 +65,75 @@ class LinkCodeListener {
     func stopListening() {
         listener?.remove()
     }
+    
+    func removelinkCodes(userUid: String, codeId: String) {
+        db.collection("linkCodes").document(codeId).getDocument { snapshot, error in
+            if error == nil {
+                guard let document = snapshot,
+                        document.exists,
+                      let data = document.data(),
+                      let uid = data["studentUid"] as? String,
+                        userUid == uid,
+                      let used = data["used"] as? Bool,
+                      let createdAt = (data["createdAt"] as? Timestamp)?.dateValue()
+                else {
+                    return
+                }
+                
+                if (used == true) || Date.isExpired(date: createdAt, timeInterval: Config.QRCODE_AUTH_TIME) {
+                    self.db.collection("linkCodes").document(codeId).delete { error in
+                        if let error = error {
+#if DEBUG
+                            print("문서 삭제 실패 : \(error.localizedDescription)")
+#endif
+                        } else {
+#if DEBUG
+                            print("문서가 성공적으로 삭제되었습니다.")
+#endif
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    func allDeleteExpiredLinkCode(userUid: String, completion: @escaping() -> Void) {
+        let cutoffDate = Date().addingTimeInterval(-Config.QRCODE_AUTH_TIME)
+        let cutooffTimestamp = Timestamp(date: cutoffDate)
+        
+        db.collection("linkCodes")
+            .whereField("studentUid", isEqualTo: userUid)
+            .whereField("createdAt", isLessThan: cutooffTimestamp)
+            .getDocuments { snapshot, error in
+                if let error = error {
+#if DEBUG
+                    print("만료 코드 조회 실패: \(error)")
+#endif
+                    return
+                }
+                guard let documents = snapshot?.documents,
+                        !documents.isEmpty
+                else {
+                    return
+                }
+                
+                let batch = Firestore.firestore().batch()
+                for doc in documents {
+                    batch.deleteDocument(doc.reference)
+                }
+                batch.commit { error in
+                    if let error = error {
+#if DEBUG
+                        print("일괄 삭제 실패: \(error)")
+#endif
+                        completion()
+                    } else {
+#if DEBUG
+                        print("만료된 코드 \(documents.count)개 삭제 완료")
+#endif
+                        completion()
+                    }
+                }
+            }
+    }
 }

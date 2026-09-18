@@ -21,7 +21,7 @@ enum AuthGateState: Equatable {
     case needsRole(name: String)                    // 로그인은 됐지만 역할(role) 미선택 → 역할 선택 화면
     case loginCancel
     case signUp
-    case loggedIn(role: String, profileImg: String)                     // 로그인 + 역할 선택까지 완료 → 메인 화면
+    case loggedIn(role: String)                     // 로그인 + 역할 선택까지 완료 → 메인 화면
 }
 
 enum AppleAuthState: Equatable {
@@ -147,6 +147,38 @@ final class AuthGateViewModel: ObservableObject {
         return []
     }
     
+    func fetchLinkCodeExist() {
+        if let userId = Auth.auth().currentUser?.uid {
+
+            Firestore.firestore().collection("users").document(userId).getDocument { snapshot, error in
+                if error == nil {
+                    guard let document = snapshot,
+                            document.exists,
+                          let data = document.data(),
+                          let linkCode = data["code"] as? String
+                    else {
+                        return
+                    }
+                    LinkCodeListener.shared.removelinkCodes(userUid: userId, codeId: linkCode)
+                    
+                    Firestore.firestore().collection("users").document(userId).updateData([
+                        "code": FieldValue.delete()
+                    ]) { error in
+                        if let error = error {
+#if DEBUG
+                            print("code 필드 삭제 실패: \(error)")
+#endif
+                        } else {
+#if DEBUG
+                            print("code 필드 삭제 성공")
+#endif
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     private func handleAuthChange(user: FirebaseAuth.User?) async {
         if isReseting {
             return
@@ -222,9 +254,7 @@ final class AuthGateViewModel: ObservableObject {
 
                 familyMembers = resolvedFamilyMembers
 #endif
-                let profileImgBase64 = try await self.fetchProfile(fetchUid: user.uid)
-
-                state = .loggedIn(role: role, profileImg: profileImgBase64)
+                state = .loggedIn(role: role)
                 loginSuccess.send(true)
             } else {
                 // 로그인은 됐는데 role 문서가 없음 → 역할 선택을 마저 해야 함
@@ -540,8 +570,6 @@ final class AuthGateViewModel: ObservableObject {
     
     /// 역할 선택 화면에서 사용자가 학부모/학생을 고르면 호출합니다.
     func saveRole(_ role: String, extra: [String: Any] = [:]) async throws {
-        guard let user = Auth.auth().currentUser else { return }
-        
         var payload: [String: Any] = [
             "role": role,
         ]
@@ -551,11 +579,7 @@ final class AuthGateViewModel: ObservableObject {
         for (key, value) in extra where !reservedKeys.contains(key) {
             payload[key] = value
         }
-
-        try await db.collection("users").document(user.uid).setData(payload, merge: true)
-        let profileImageBase64 = try await self.fetchProfile(fetchUid: user.uid)
-        
-        state = .loggedIn(role: role, profileImg: profileImageBase64)
+        state = .loggedIn(role: role)
     }
     
     func saveProfileImage(uid: String, imageBase64: String) async throws {

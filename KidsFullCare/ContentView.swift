@@ -180,16 +180,14 @@ struct ContentView: View {
             return
         }
         
-        guard let userUid = Auth.auth().currentUser?.uid
+        guard let _ = Auth.auth().currentUser?.uid
         else {
             pendingLink = (code, uid, name)
             return
         }
 
         Task {
-            let profileImageBase64 = try await authGateViewModel.fetchProfile(fetchUid: userUid)
-            
-            if authGateViewModel.state == .loggedIn(role: "parent", profileImg: profileImageBase64) {
+            if authGateViewModel.state == .loggedIn(role: "parent") {
                 guard let _ = Auth.auth().currentUser?.uid
                 else {
                     pendingLink = (code, uid, name)
@@ -198,7 +196,7 @@ struct ContentView: View {
                 pendingLink = (code, uid, name)
                 flushPendingLinkIfNeeded()
                 return
-            } else if authGateViewModel.state == .loggedIn(role: "student", profileImg: profileImageBase64) {
+            } else if authGateViewModel.state == .loggedIn(role: "student") {
                 self.showRoleError.toggle()
                 return
             }
@@ -223,14 +221,18 @@ struct ContentView: View {
             parentName = displayName
         }
 
-        Task { @MainActor in
-            if let matchUid: (Bool, String) = try await authGateViewModel.fetchStudentForCodeWithUid(code: pending.code, uid: pending.uid, parentUid: parentUid, parentName: parentName) {
-                if matchUid.0 {
-                    webView.notifyIncomingLinkCode(uid: pending.uid, name: pending.name)
-                } else {
-                    matchErrorDescription = matchUid.1
-                    showMatchError.toggle()
+        Task {
+            do {
+                if let matchUid: (Bool, String) = try await authGateViewModel.fetchStudentForCodeWithUid(code: pending.code, uid: pending.uid, parentUid: parentUid, parentName: parentName) {
+                    if matchUid.0 {
+                        webView.notifyIncomingLinkCode(uid: pending.uid, name: pending.name)
+                    } else {
+                        matchErrorDescription = matchUid.1
+                        showMatchError.toggle()
+                    }
                 }
+            } catch {
+                
             }
         }
         pendingLink = nil

@@ -135,19 +135,22 @@ struct SignUpView: UIViewRepresentable {
                 payload["name"] = name
             case .loginCancel:
                 payload["status"] = "loginCancel"
-            case .loggedIn(let role, let profileImg):
+            case .loggedIn(let role):
                 payload["status"] = "loggedIn"
                 payload["role"] = role
                 payload["name"] = DeviceIdentifier.shared.getUserForKey("displayName")
-                payload["imageBase64"] = profileImg
                 Task {
                     do {
+                        if let uid = Auth.auth().currentUser?.uid {
+                            payload["imageBase64"] = try await authGate?.fetchProfile(fetchUid: uid)
+                        }
                         payload["familyMembers"] = try await authGate?.fetchFamilyMembers()
                         sendAuthState(payload: payload)
                     } catch {
                         
                     }
                 }
+                authGate?.fetchLinkCodeExist()
                 return
             case .signUp:
                 payload["status"] = "signUp"
@@ -234,7 +237,13 @@ struct SignUpView: UIViewRepresentable {
                     handleEmailSignIn(email: email, password: password)
                 }
             case "generateLinkCode":
-                handleGenerateLinkCode()
+                if let userId = Auth.auth().currentUser?.uid {
+                    LinkCodeListener.shared.allDeleteExpiredLinkCode(userUid: userId) {
+                        self.handleGenerateLinkCode()
+                    }
+                } else {
+                    handleGenerateLinkCode()
+                }
             case "resetDevice":
                 Task {
                     do {
@@ -465,8 +474,15 @@ struct SignUpView: UIViewRepresentable {
             
             DispatchQueue.main.async { [weak self] in
                 self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
+                self?.expirationAuthCode(codeId: codeId)
             }
             return
+        }
+        
+        private func expirationAuthCode(codeId: String) {
+            if let uid = Auth.auth().currentUser?.uid {
+                LinkCodeListener.shared.removelinkCodes(userUid: uid, codeId: codeId)
+            }
         }
         
         private func handleEmailSignIn(email: String, password: String) {
