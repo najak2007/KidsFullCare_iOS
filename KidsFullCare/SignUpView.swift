@@ -145,6 +145,7 @@ struct SignUpView: UIViewRepresentable {
                             payload["imageBase64"] = try await authGate?.fetchProfile(fetchUid: uid)
                         }
                         payload["familyMembers"] = try await authGate?.fetchFamilyMembers()
+                        payload["userUid"] = DeviceIdentifier.shared.getUserForKey("firebaseUID")
                         sendAuthState(payload: payload)
                     } catch {
                         
@@ -289,7 +290,8 @@ struct SignUpView: UIViewRepresentable {
                 if let schoolInfoDic = message.body as? [String: Any] {
                     do {
                         let schoolInfo: SchoolInfo = try SchoolInfo.decode(dictionary: schoolInfoDic)
-                        handleSchoolRegisterSave(schoolInfo: schoolInfo)
+                        handleSchoolRegisterSave(schoolDict: schoolInfoDic, schoolInfo: schoolInfo) { isResult in
+                        }
                     } catch {
                         
                     }
@@ -315,8 +317,14 @@ struct SignUpView: UIViewRepresentable {
             return true
         }
         
-        private func handleSchoolRegisterSave(schoolInfo: SchoolInfo?) {
-            
+        private func handleSchoolRegisterSave(schoolDict: [String: Any],  schoolInfo: SchoolInfo, completion: @escaping ((Bool) -> Void)) {
+            do {
+                authGate?.saveSchoolInfo(uid: schoolInfo.USER_UID, role: schoolInfo.ROLE, schoolPayload: schoolDict) { isResult in
+                    completion(isResult)
+                }
+            } catch {
+                return completion(false)
+            }
         }
         
         private func handleSendSchoolInfo() {

@@ -221,7 +221,7 @@ struct ContentView: View {
             parentName = displayName
         }
 
-        Task {
+        let _ = Task { @MainActor in
             do {
                 if let matchUid: (Bool, String) = try await authGateViewModel.fetchStudentForCodeWithUid(code: pending.code, uid: pending.uid, parentUid: parentUid, parentName: parentName) {
                     if matchUid.0 {
@@ -232,9 +232,12 @@ struct ContentView: View {
                     }
                 }
             } catch {
-                
+                // Surface the error to the UI instead of letting it be ignored
+                matchErrorDescription = error.localizedDescription
+                showMatchError = true
             }
         }
         pendingLink = nil
     }
 }
+

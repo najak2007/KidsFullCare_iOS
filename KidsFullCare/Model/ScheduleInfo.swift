@@ -9,16 +9,22 @@ import Foundation
 import RealmSwift
 
 struct SchoolInfo: Codable {
-    var ATPT_OFCDC_SC_CODE: String = ""                 // 시도교육청코드
-    var SD_SCHUL_CODE: String = ""                      // 행정표준코드
     var SCHUL_NM: String = ""                           // 학교명
-    var SCHUL_KND_SC_NM: String = ""                    // 학교종류명
-    var LCTN_SC_NM: String = ""                         // 시도명
-    var FOND_SC_NM: String = ""                         // 설립명
     var ORG_RDNMA: String = ""                          // 도로 주소
     var ORG_RDNDA: String = ""                          // 도로 상세 주소
+    var ATPT_OFCDC_SC_CODE: String = ""                 // 시도교육청코드
+    var ATPT_OFCDC_SC_NM: String = ""
+    var SD_SCHUL_CODE: String = ""                      // 행정표준코드
+    var SCHUL_KND_SC_NM: String = ""                    // 학교종류명
+    var LCTN_SC_NM: String = ""                         // 시도명
+    var JU_ORG_NM: String = ""
+    var FOND_YMD: String = ""
+    var FOND_SC_NM: String = ""                         // 설립명
     var ORG_TELNO: String = ""                          // 전화번호
+    var FOAS_MEMRD: String = ""
     var GRADE: String = ""                              // 반
+    var ROLE: String = ""                               // parent or student
+    var USER_UID: String = ""                           // Firebase uid
 }
 
 struct ScheduleInfo: Codable, Hashable {
@@ -44,7 +50,6 @@ struct SchoolResponseInfo: Codable {
     var HMPG_ADRES: String = ""                             // 홈페이지주소
     var COEDU_SC_NM: String = ""                            // 남녀공학구분명
     var ORG_FAXNO: String = ""                              // 팩스번호
-    var HS_SC_NM: String = ""                               // 고등학교구분명
     var INDST_SPECL_CCCCL_EXST_YN: String = ""              // 산업체특별학급존재여부
     var HS_GNRL_BUSNS_SC_NM: String = ""                    // 고등학교일반전문구분명
     var SPCLY_PURPS_HS_ORD_NM: String = ""                  // 특수목적고등학교계열명
