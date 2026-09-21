@@ -575,15 +575,23 @@ final class AuthGateViewModel: ObservableObject {
         ]
 
         // uid/role/createdAt 등 예약 필드는 extra가 덮어쓰지 못하게 막습니다.
-        let reservedKeys: Set<String> = ["uid", "role", "createdAt"]
+        let reservedKeys: Set<String> = ["uid", "createdAt"]
         for (key, value) in extra where !reservedKeys.contains(key) {
             payload[key] = value
         }
+        
+        guard let user = Auth.auth().currentUser
+        else {
+            return
+        }
+        try await db.collection("users").document(user.uid).updateData(
+            payload
+        )
+        
         state = .loggedIn(role: role)
     }
     
     func saveSchoolInfo(uid: String, role: String, schoolPayload: [String: Any], completion: @escaping ((Bool) -> Void))  {
-        
         db.collection("users").document(uid).updateData([
             "school": FieldValue.arrayUnion([schoolPayload])
         ]) { error in
@@ -669,7 +677,21 @@ final class AuthGateViewModel: ObservableObject {
                         idToken: idToken,
                         rawNonce: rawNonce
                     )
-                    try await Auth.auth().signIn(with: credential)
+                    do {
+                        let authDataResult: AuthDataResult = try await Auth.auth().signIn(with: credential)
+#if DEBUG
+                        print("resetDevice authDataResult = \(authDataResult)")
+#endif
+                    } catch {
+                        KeychainHelper.shared.delete(account: "userID")
+
+                        try? Auth.auth().signOut()
+                        self.isUseBiometricAck = .사용여부_질문필요
+                        isReseting = false
+                        state = .signUp
+                        return
+                    }
+
                     if let user = Auth.auth().currentUser {
                         try await self.removeFamilyMember(uid: user.uid)
                     }

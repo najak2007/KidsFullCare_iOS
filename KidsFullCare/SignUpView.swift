@@ -156,6 +156,10 @@ struct SignUpView: UIViewRepresentable {
             case .signUp:
                 payload["status"] = "signUp"
             }
+            
+#if DEBUG
+            print("notifyJS payload = \(payload)")
+#endif
             sendAuthState(payload: payload)
         }
 
@@ -291,6 +295,7 @@ struct SignUpView: UIViewRepresentable {
                     do {
                         let schoolInfo: SchoolInfo = try SchoolInfo.decode(dictionary: schoolInfoDic)
                         handleSchoolRegisterSave(schoolDict: schoolInfoDic, schoolInfo: schoolInfo) { isResult in
+                            self.sendSchoolSaveResult()
                         }
                     } catch {
                         
@@ -318,12 +323,8 @@ struct SignUpView: UIViewRepresentable {
         }
         
         private func handleSchoolRegisterSave(schoolDict: [String: Any],  schoolInfo: SchoolInfo, completion: @escaping ((Bool) -> Void)) {
-            do {
-                authGate?.saveSchoolInfo(uid: schoolInfo.USER_UID, role: schoolInfo.ROLE, schoolPayload: schoolDict) { isResult in
-                    completion(isResult)
-                }
-            } catch {
-                return completion(false)
+            authGate?.saveSchoolInfo(uid: schoolInfo.USER_UID, role: schoolInfo.ROLE, schoolPayload: schoolDict) { isResult in
+                completion(isResult)
             }
         }
         
@@ -433,6 +434,18 @@ struct SignUpView: UIViewRepresentable {
                 self.authGate?.addFamily(familyUid: parentUid , familyName: parentName) { isResult in
                     self.sendQRCodeAuthResultHandler(isResult: isResult, codeId: code, familyUid: parentUid, familyName: parentName)
                 }
+            }
+        }
+        
+        private func sendSchoolSaveResult() {
+            let jsScript = """
+                (function() {
+                    window.onNativeSchoolRegisterComplete && window.onNativeSchoolRegisterComplete();
+                    return null;
+                })();
+                """
+            DispatchQueue.main.async { [weak self] in
+                self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
             }
         }
         
@@ -678,7 +691,7 @@ struct SignUpView: UIViewRepresentable {
                     Task {
                         do {
                             if let uid = Auth.auth().currentUser?.uid {
-                                if let matchUid: (Bool, String) = try await self?.authGate?.fetchStudentForCodeWithUid(code: studentInfo.code, uid: studentInfo.uid, parentUid: uid, parentName: studentInfo.name ?? DeviceIdentifier.shared.getUserForKey("displayName") ?? "") {
+                                if let matchUid: (Bool, String) = try await self?.authGate?.fetchStudentForCodeWithUid(code: studentInfo.code, uid: studentInfo.uid, parentUid: uid, parentName: DeviceIdentifier.shared.getUserForKey("displayName") ?? "" ) {
                                     if matchUid.0 {
                                         self?.webView?.notifyIncomingLinkCode(uid: studentInfo.uid, name: studentInfo.name ?? "")
                                     }

@@ -109,11 +109,13 @@ class LinkCodeListener {
 #if DEBUG
                     print("만료 코드 조회 실패: \(error)")
 #endif
+                    completion()
                     return
                 }
                 guard let documents = snapshot?.documents,
                         !documents.isEmpty
                 else {
+                    completion()
                     return
                 }
                 
