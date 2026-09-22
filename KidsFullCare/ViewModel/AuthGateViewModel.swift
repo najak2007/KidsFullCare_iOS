@@ -591,9 +591,9 @@ final class AuthGateViewModel: ObservableObject {
         state = .loggedIn(role: role)
     }
     
-    func saveSchoolInfo(uid: String, role: String, schoolPayload: [String: Any], completion: @escaping ((Bool) -> Void))  {
+    func saveSchoolInfo(documentID: String, uid: String, role: String, schoolPayload: [String: Any], completion: @escaping ((Bool) -> Void))  {
         db.collection("users").document(uid).updateData([
-            "school": FieldValue.arrayUnion([schoolPayload])
+            documentID: FieldValue.arrayUnion([schoolPayload])
         ]) { error in
             DispatchQueue.main.async {
                 completion(error == nil)

@@ -52,8 +52,9 @@ struct SignUpView: UIViewRepresentable {
         userContentController.add(context.coordinator, name: "fetchProfileImage")
         userContentController.add(context.coordinator, name: "addFamilyReq")
         userContentController.add(context.coordinator, name: "sendMessage")
-        userContentController.add(context.coordinator, name: "schoolRegisterSave")
+        userContentController.add(context.coordinator, name: "studentMenuRegisterSave")
         userContentController.add(context.coordinator, name: "schoolInfoReq")
+        userContentController.add(context.coordinator, name: "menuItemReq")
         
         config.userContentController = userContentController
 
@@ -290,12 +291,16 @@ struct SignUpView: UIViewRepresentable {
                    let receiveName = body["name"] as? String {
                     handleSendMessage(userId: receiveUid, name: receiveName)
                 }
-            case "schoolRegisterSave":
-                if let schoolInfoDic = message.body as? [String: Any] {
+            case "studentMenuRegisterSave":
+                if let menuInfoDic = message.body as? [String: Any],
+                   let documentKey = menuInfoDic["KEY"] as? String
+                {
                     do {
-                        let schoolInfo: SchoolInfo = try SchoolInfo.decode(dictionary: schoolInfoDic)
-                        handleSchoolRegisterSave(schoolDict: schoolInfoDic, schoolInfo: schoolInfo) { isResult in
-                            self.sendSchoolSaveResult()
+                        if documentKey == "school" {
+                            let schoolInfo: SchoolInfo = try SchoolInfo.decode(dictionary: menuInfoDic)
+                            handleSchoolRegisterSave(schoolDict: menuInfoDic, schoolInfo: schoolInfo) { isResult in
+                                self.sendSchoolSaveResult()
+                            }
                         }
                     } catch {
                         
@@ -303,6 +308,10 @@ struct SignUpView: UIViewRepresentable {
                 }
             case "schoolInfoReq":
                 handleSendSchoolInfo()
+            case "menuItemReq":
+                if let menuKey = message.body as? String {
+                    handleMenuItemReq(menuKey: menuKey)
+                }
             default:
                 break
             }
@@ -322,8 +331,14 @@ struct SignUpView: UIViewRepresentable {
             return true
         }
         
+        private func handleMenuItemReq(menuKey: String) {
+#if DEBUG
+            print("handleMenuItemReq menuKey = \(menuKey)")
+#endif
+        }
+        
         private func handleSchoolRegisterSave(schoolDict: [String: Any],  schoolInfo: SchoolInfo, completion: @escaping ((Bool) -> Void)) {
-            authGate?.saveSchoolInfo(uid: schoolInfo.USER_UID, role: schoolInfo.ROLE, schoolPayload: schoolDict) { isResult in
+            authGate?.saveSchoolInfo(documentID: schoolInfo.KEY, uid: schoolInfo.USER_UID, role: schoolInfo.ROLE, schoolPayload: schoolDict) { isResult in
                 completion(isResult)
             }
         }

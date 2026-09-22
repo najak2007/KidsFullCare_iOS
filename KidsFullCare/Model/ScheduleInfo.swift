@@ -9,6 +9,7 @@ import Foundation
 import RealmSwift
 
 struct SchoolInfo: Codable {
+    var KEY: String = ""                                // Firestore - document - field 이름 ==> 예) school, academy...
     var SCHUL_NM: String = ""                           // 학교명
     var ORG_RDNMA: String = ""                          // 도로 주소
     var ORG_RDNDA: String = ""                          // 도로 상세 주소
