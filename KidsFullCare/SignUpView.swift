@@ -53,7 +53,6 @@ struct SignUpView: UIViewRepresentable {
         userContentController.add(context.coordinator, name: "addFamilyReq")
         userContentController.add(context.coordinator, name: "sendMessage")
         userContentController.add(context.coordinator, name: "studentMenuRegisterSave")
-        userContentController.add(context.coordinator, name: "schoolInfoReq")
         userContentController.add(context.coordinator, name: "menuItemReq")
         
         config.userContentController = userContentController
@@ -306,11 +305,9 @@ struct SignUpView: UIViewRepresentable {
                         
                     }
                 }
-            case "schoolInfoReq":
-                handleSendSchoolInfo()
             case "menuItemReq":
-                if let menuKey = message.body as? String {
-                    handleMenuItemReq(menuKey: menuKey)
+                if let menuItem = message.body as? [String: Any] {
+                    handleMenuItemReq(menuItem: menuItem)
                 }
             default:
                 break
@@ -331,27 +328,24 @@ struct SignUpView: UIViewRepresentable {
             return true
         }
         
-        private func handleMenuItemReq(menuKey: String) {
-#if DEBUG
-            print("handleMenuItemReq menuKey = \(menuKey)")
-#endif
+        private func handleMenuItemReq(menuItem: [String: Any]) {
+            if let documentID = menuItem["key"] as? String,
+               !documentID.isEmpty {
+                Task {
+                    do {
+                        if let menuItem = try await authGate?.fetchUserDocumentInfo(documentID: documentID, menuItem: menuItem) {
+                            sendUserInfoResult(payload: menuItem)
+                        }
+                    } catch {
+                        
+                    }
+                }
+            }
         }
         
         private func handleSchoolRegisterSave(schoolDict: [String: Any],  schoolInfo: SchoolInfo, completion: @escaping ((Bool) -> Void)) {
             authGate?.saveSchoolInfo(documentID: schoolInfo.KEY, uid: schoolInfo.USER_UID, role: schoolInfo.ROLE, schoolPayload: schoolDict) { isResult in
                 completion(isResult)
-            }
-        }
-        
-        private func handleSendSchoolInfo() {
-            if let uid = Auth.auth().currentUser?.uid {
-                Task {
-                    do {
-                        let schoolInfo = try? await schoolViewModel.fetchSchoolInfo(uid: uid)
-                    } catch {
-                        
-                    }
-                }
             }
         }
         
@@ -449,6 +443,25 @@ struct SignUpView: UIViewRepresentable {
                 self.authGate?.addFamily(familyUid: parentUid , familyName: parentName) { isResult in
                     self.sendQRCodeAuthResultHandler(isResult: isResult, codeId: code, familyUid: parentUid, familyName: parentName)
                 }
+            }
+        }
+        
+        private func sendUserInfoResult(payload: [String: Any]) {
+            
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
+                  let jsonString = String(data: jsonData, encoding: .utf8)
+            else {
+                return
+            }
+            
+            let jsScript = """
+                (function() {
+                    window.onNativeMenuItem && window.onNativeMenuItem(\(jsonString));
+                    return null;
+                })();
+                """
+            DispatchQueue.main.async { [weak self] in
+                self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
             }
         }
         

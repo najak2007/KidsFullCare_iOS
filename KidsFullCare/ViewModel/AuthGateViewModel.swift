@@ -519,6 +519,26 @@ final class AuthGateViewModel: ObservableObject {
         return displayName
     }
     
+    func fetchUserDocumentInfo(documentID: String, menuItem: [String: Any]) async throws -> [String: Any]? {
+        guard let user = Auth.auth().currentUser
+        else {
+            return nil
+        }
+        let docRef = db.collection("users").document(user.uid)
+        let snapshot = try await docRef.getDocument()
+        
+        guard snapshot.exists,
+              let data = snapshot.data(),
+              let menuItemArray = data[documentID] as? [[String: Any]],
+                !menuItemArray.isEmpty,
+              var menuDic = menuItemArray.last
+        else {
+            return nil
+        }
+        menuDic.merge(menuItem) {(current, _) in current }
+        return menuDic
+    }
+    
     func fetchStudentForCodeWithUid(code: String, uid: String, parentUid: String, parentName: String) async throws -> (Bool, String)? {
         let documentRef = db.collection("linkCodes").document(code)
         let document = try await documentRef.getDocument()

@@ -26,6 +26,8 @@ struct SchoolInfo: Codable {
     var GRADE: String = ""                              // 반
     var ROLE: String = ""                               // parent or student
     var USER_UID: String = ""                           // Firebase uid
+    var label: String = ""
+    var register: Bool = true
 }
 
 struct ScheduleInfo: Codable, Hashable {
