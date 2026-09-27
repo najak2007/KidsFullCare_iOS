@@ -74,13 +74,16 @@ struct ContentView: View {
             emailWithPasswordLoginBioUseAsk(password: password)
         }
         .onReceive(loginSuccess) { isLogin in
-            if isLogin, pendingLink != nil {
-                DispatchQueue.main.async {
-                    self.flushPendingLinkIfNeeded()
-                }
-                if authGateViewModel.state == .loggedIn(role: "parent"),
-                   let user = Auth.auth().currentUser {
-                    studentInfoViewModel.start(forParentUid: user.uid)
+            if isLogin {
+                if pendingLink != nil {
+                    DispatchQueue.main.async {
+                        self.flushPendingLinkIfNeeded()
+                    }
+                } else {
+                    if authGateViewModel.state == .loggedIn(role: "parent"),
+                       let user = Auth.auth().currentUser {
+                        studentInfoViewModel.start(forParentUid: user.uid)
+                    }
                 }
             }
         }
