@@ -52,7 +52,7 @@ struct GenerateLinkCodeResult: Decodable, Encodable {
 struct FamilyMember: Decodable, Encodable {
     let name: String
     let uid: String
-    let profileImg: String
+    var profileImg: String = ""
 }
 
 @MainActor

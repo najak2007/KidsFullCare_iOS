@@ -13,6 +13,7 @@ struct ContentView: View {
     @StateObject private var userViewModel = UserViewModel()
     @StateObject private var authGateViewModel = AuthGateViewModel()
     @StateObject private var faceIDManager = FaceIDManager()
+    @StateObject private var studentInfoViewModel = LinkedStudentsInfoViewModel()
     @State private var webViewFirstLoadDone = false
     @State private var showAlert = false
     @State private var showRoleError = false
@@ -76,6 +77,10 @@ struct ContentView: View {
             if isLogin, pendingLink != nil {
                 DispatchQueue.main.async {
                     self.flushPendingLinkIfNeeded()
+                }
+                if authGateViewModel.state == .loggedIn(role: "parent"),
+                   let user = Auth.auth().currentUser {
+                    studentInfoViewModel.start(forParentUid: user.uid)
                 }
             }
         }
@@ -145,14 +150,21 @@ struct ContentView: View {
     }
     
     private func handleScenePhaseChange(from oldValue: ScenePhase, to newValue: ScenePhase) {
-        guard Auth.auth().currentUser != nil else { return }
+        guard let user = Auth.auth().currentUser  else { return }
         
         if oldValue == .active && newValue == .inactive {
             backgroundStateTime = Date()
+            studentInfoViewModel.stop()
         } else if oldValue == .background && newValue == .inactive {
             let elapsedTime = Date().timeIntervalSince(backgroundStateTime)
             if elapsedTime > 600 {
                 logoutDueToInactivity()
+                studentInfoViewModel.stop()
+            } else {
+                if authGateViewModel.state == .loggedIn(role: "parent"),
+                   user.uid == DeviceIdentifier.shared.getUserForKey("firebaseUID") {
+                    studentInfoViewModel.start(forParentUid: user.uid)
+                }
             }
         }
     }
