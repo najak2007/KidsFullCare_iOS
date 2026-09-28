@@ -32,15 +32,17 @@ final class LinkedStudentsInfoViewModel: ObservableObject {
                     return FamilyMember(name: name, uid: uid)
                 }
 
-                for member in family {
-                    self.attachListener(studentUid: member.uid)
+                Task { @MainActor in
+                    for member in family {
+                        self.attachListener(studentUid: member.uid)
+                    }
                 }
             }
     }
 
     private func attachListener(studentUid: String) {
         let ref = db.collection("users").document(studentUid)
-            .collection("meta").document("school")
+
 
         let listener = ref.addSnapshotListener { [weak self] snapshot, error in
             guard let self else { return }

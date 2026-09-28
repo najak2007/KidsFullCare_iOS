@@ -479,7 +479,8 @@ final class AuthGateViewModel: ObservableObject {
                             "uid": familyUid
                         ]
                         try await self.db.collection("users").document(user.uid).updateData([
-                            "family": FieldValue.arrayUnion([familyInfo])
+                            "family": FieldValue.arrayUnion([familyInfo]),
+                            "familyUids": FieldValue.arrayUnion([familyUid])
                         ])
                         return completion(.추가)
                     } catch {
@@ -496,13 +497,17 @@ final class AuthGateViewModel: ObservableObject {
     func removeFamilyMember(uid memberUid: String) async throws {
         guard let user = Auth.auth().currentUser else { return }
         let docRef = db.collection("users").document(user.uid)
- 
+
         let snapshot = try await docRef.getDocument()
-        guard var rawArray = snapshot.data()?["family"] as? [[String: Any]] else { return }
- 
-        rawArray.removeAll { ($0["uid"] as? String) == memberUid }
- 
-        try await docRef.updateData(["family": rawArray])
+        let data = snapshot.data() ?? [:]
+
+        var family = data["family"] as? [[String: Any]] ?? []
+        family.removeAll { ($0["uid"] as? String) == memberUid }
+
+        try await docRef.updateData([
+            "family": family,
+            "familyUids": FieldValue.arrayRemove([memberUid])
+        ])
     }
     
     func fetchStudentInfo(studentUid: String) async throws -> String? {
@@ -537,6 +542,35 @@ final class AuthGateViewModel: ObservableObject {
         }
         menuDic.merge(menuItem) {(current, _) in current }
         return menuDic
+    }
+    
+    func fetchAllUserDocumentInfo(userUid: String, documents: [StudentMenu]) async throws -> [[String: Any]]? {
+        let docRef = db.collection("users").document(userUid)
+        let snapshot = try await docRef.getDocument()
+        var studentInfos: [[String: Any]] = []
+        
+        guard snapshot.exists,
+              let data = snapshot.data()
+        else {
+            return nil
+        }
+        
+        for document in documents {
+            if let menuItemArray = data[document.key] as? [[String: Any]],
+               !menuItemArray.isEmpty,
+               var menuDic = menuItemArray.last,
+               let defaultMenuDic = document.asDictionary {
+                menuDic.merge(defaultMenuDic) {(current, _) in current }
+                menuDic.updateValue(true, forKey: "register")
+                studentInfos.append(menuDic)
+            } else {
+                if var defaultMenuDic = document.asDictionary {
+                    defaultMenuDic.updateValue(false, forKey: "register")
+                    studentInfos.append(defaultMenuDic)
+                }
+            }
+        }
+        return studentInfos
     }
     
     func fetchStudentForCodeWithUid(code: String, uid: String, parentUid: String, parentName: String) async throws -> (Bool, String)? {

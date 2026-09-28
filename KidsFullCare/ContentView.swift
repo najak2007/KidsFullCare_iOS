@@ -14,6 +14,7 @@ struct ContentView: View {
     @StateObject private var authGateViewModel = AuthGateViewModel()
     @StateObject private var faceIDManager = FaceIDManager()
     @StateObject private var studentInfoViewModel = LinkedStudentsInfoViewModel()
+    @StateObject private var studentMenuConfig = RemoteConfigManager()
     @State private var webViewFirstLoadDone = false
     @State private var showAlert = false
     @State private var showRoleError = false
@@ -80,9 +81,26 @@ struct ContentView: View {
                         self.flushPendingLinkIfNeeded()
                     }
                 } else {
-                    if authGateViewModel.state == .loggedIn(role: "parent"),
-                       let user = Auth.auth().currentUser {
-                        studentInfoViewModel.start(forParentUid: user.uid)
+                    if let user = Auth.auth().currentUser {
+                        if authGateViewModel.state == .loggedIn(role: "parent") {
+                            studentInfoViewModel.start(forParentUid: user.uid)
+                        } else if authGateViewModel.state == .loggedIn(role: "student") {
+                            studentMenuConfig.start() { menus in
+#if DEBUG
+                                print("menu = \(menus)")
+#endif
+                                Task {
+                                    do {
+                                        let student_menus = try await authGateViewModel.fetchAllUserDocumentInfo(userUid: user.uid, documents: menus)
+#if DEBUG
+                                        print("student_menus = \(student_menus)")
+#endif
+                                    } catch {
+                                        
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
