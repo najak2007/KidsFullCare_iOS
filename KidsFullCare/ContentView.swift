@@ -49,7 +49,7 @@ struct ContentView: View {
                         .background(Color(.systemBackground))
                 } else {
                     if let url = URL(string: Config.KIDS_FULL_CARE_URL) {
-                        SignUpView(userViewModel: userViewModel, authGate: authGateViewModel, url: url, onFirstLoad: {
+                        SignUpView(userViewModel: userViewModel, authGate: authGateViewModel, studentMenuConfig: studentMenuConfig, url: url, onFirstLoad: {
                             webViewFirstLoadDone = true
                         })
                         .ignoresSafeArea() // 안전 영역 무시하고 꽉 채우기
@@ -84,23 +84,7 @@ struct ContentView: View {
                     if let user = Auth.auth().currentUser {
                         if authGateViewModel.state == .loggedIn(role: "parent") {
                             studentInfoViewModel.start(forParentUid: user.uid)
-                        } else if authGateViewModel.state == .loggedIn(role: "student") {
-                            studentMenuConfig.start() { menus in
-#if DEBUG
-                                print("menu = \(menus)")
-#endif
-                                Task {
-                                    do {
-                                        let student_menus = try await authGateViewModel.fetchAllUserDocumentInfo(userUid: user.uid, documents: menus)
-#if DEBUG
-                                        print("student_menus = \(student_menus)")
-#endif
-                                    } catch {
-                                        
-                                    }
-                                }
-                            }
-                        }
+                        } 
                     }
                 }
             }

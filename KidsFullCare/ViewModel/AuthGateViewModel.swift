@@ -645,12 +645,14 @@ final class AuthGateViewModel: ObservableObject {
         state = .loggedIn(role: role)
     }
     
-    func saveSchoolInfo(documentID: String, uid: String, role: String, schoolPayload: [String: Any], completion: @escaping ((Bool) -> Void))  {
-        db.collection("users").document(uid).updateData([
-            documentID: FieldValue.arrayUnion([schoolPayload])
-        ]) { error in
-            DispatchQueue.main.async {
-                completion(error == nil)
+    func saveSchoolInfo(documentID: String, schoolPayload: [String: Any], completion: @escaping ((Bool) -> Void))  {
+        if let uid = Auth.auth().currentUser?.uid {
+            db.collection("users").document(uid).updateData([
+                documentID: FieldValue.arrayUnion([schoolPayload])
+            ]) { error in
+                DispatchQueue.main.async {
+                    completion(error == nil)
+                }
             }
         }
     }

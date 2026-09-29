@@ -26,6 +26,7 @@ enum HTTPMethod: String {
 struct SignUpView: UIViewRepresentable {
     @ObservedObject var userViewModel: UserViewModel
     @ObservedObject var authGate: AuthGateViewModel
+    @ObservedObject var studentMenuConfig: RemoteConfigManager
     @StateObject private var schoolViewModel = SchoolViewModel()
     
     let url: URL
@@ -53,6 +54,7 @@ struct SignUpView: UIViewRepresentable {
         userContentController.add(context.coordinator, name: "addFamilyReq")
         userContentController.add(context.coordinator, name: "sendMessage")
         userContentController.add(context.coordinator, name: "studentMenuRegisterSave")
+        userContentController.add(context.coordinator, name: "fetchMainGridMenu")
         userContentController.add(context.coordinator, name: "menuItemReq")
         
         config.userContentController = userContentController
@@ -86,11 +88,12 @@ struct SignUpView: UIViewRepresentable {
     func updateUIView(_ uiView: WKWebView, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(viewModel: userViewModel, schoolViewModel: schoolViewModel)
+        Coordinator(viewModel: userViewModel, studentMenuConfig: studentMenuConfig, schoolViewModel: schoolViewModel)
     }
 
     class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler, WKUIDelegate, UIGestureRecognizerDelegate {
         let userViewModel: UserViewModel
+        let studentMenuConfig: RemoteConfigManager
         let schoolViewModel: SchoolViewModel
         var isInitialLoad: Bool = true
         private weak var webView: WKWebView?
@@ -102,8 +105,9 @@ struct SignUpView: UIViewRepresentable {
         // Apple 로그인 요청 시 사용한 원본(해시 전) nonce
         private var currentNonce: String?
 
-        init(viewModel: UserViewModel, schoolViewModel: SchoolViewModel) {
+        init(viewModel: UserViewModel, studentMenuConfig: RemoteConfigManager, schoolViewModel: SchoolViewModel) {
             self.userViewModel = viewModel
+            self.studentMenuConfig = studentMenuConfig
             self.schoolViewModel = schoolViewModel
         }
 
@@ -292,17 +296,18 @@ struct SignUpView: UIViewRepresentable {
                 }
             case "studentMenuRegisterSave":
                 if let menuInfoDic = message.body as? [String: Any],
-                   let documentKey = menuInfoDic["KEY"] as? String
-                {
-                    do {
-                        if documentKey == "school" {
-                            let schoolInfo: SchoolInfo = try SchoolInfo.decode(dictionary: menuInfoDic)
-                            handleSchoolRegisterSave(schoolDict: menuInfoDic, schoolInfo: schoolInfo) { isResult in
-                                self.sendSchoolSaveResult()
-                            }
+                   let documentKey = menuInfoDic["KEY"] as? String {
+                        handleStudentInfoRegisterSave(schoolDict: menuInfoDic, documentID: documentKey) { isResult in
+                            self.sendStudentInfoSaveResult(documentID: documentKey)
                         }
-                    } catch {
-                        
+                }
+            case "fetchMainGridMenu":
+                if authGate?.state == .loggedIn(role: "student") {
+                    studentMenuConfig.start() { menus in
+#if DEBUG
+                        print("menu = \(menus)")
+#endif
+                        self.sendStudentMenu(studentMenus: menus)
                     }
                 }
             case "menuItemReq":
@@ -343,8 +348,8 @@ struct SignUpView: UIViewRepresentable {
             }
         }
         
-        private func handleSchoolRegisterSave(schoolDict: [String: Any],  schoolInfo: SchoolInfo, completion: @escaping ((Bool) -> Void)) {
-            authGate?.saveSchoolInfo(documentID: schoolInfo.KEY, uid: schoolInfo.USER_UID, role: schoolInfo.ROLE, schoolPayload: schoolDict) { isResult in
+        private func handleStudentInfoRegisterSave(schoolDict: [String: Any],  documentID: String, completion: @escaping ((Bool) -> Void)) {
+            authGate?.saveSchoolInfo(documentID: documentID, schoolPayload: schoolDict) { isResult in
                 completion(isResult)
             }
         }
@@ -446,6 +451,36 @@ struct SignUpView: UIViewRepresentable {
             }
         }
         
+        func sendStudentMenu(studentMenus: [StudentMenu]) {
+            guard webView != nil
+            else {
+                return
+            }
+            
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            do {
+                let jsonData = try encoder.encode(studentMenus)
+                
+                guard
+                    let jsonString = String(data: jsonData, encoding: .utf8)
+                        else {
+                    return
+                }
+                
+                
+                let jsScript = """
+                (function() {
+                    window.onNativeStudentMenuInfo && window.onNativeStudentMenuInfo(\(jsonString));
+                    return null;
+                })();
+                """
+                webView?.evaluateJavaScript(jsScript, completionHandler: nil)
+            } catch {
+                
+            }
+        }
+        
         private func sendUserInfoResult(payload: [String: Any]) {
             
             guard let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
@@ -465,10 +500,10 @@ struct SignUpView: UIViewRepresentable {
             }
         }
         
-        private func sendSchoolSaveResult() {
+        private func sendStudentInfoSaveResult(documentID: String) {
             let jsScript = """
                 (function() {
-                    window.onNativeSchoolRegisterComplete && window.onNativeSchoolRegisterComplete();
+                    window.onNative\(documentID)RegisterComplete && window.onNative\(documentID)RegisterComplete();
                     return null;
                 })();
                 """
