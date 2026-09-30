@@ -297,7 +297,7 @@ struct SignUpView: UIViewRepresentable {
             case "studentMenuRegisterSave":
                 if let menuInfoDic = message.body as? [String: Any],
                    let documentKey = menuInfoDic["KEY"] as? String {
-                        handleStudentInfoRegisterSave(schoolDict: menuInfoDic, documentID: documentKey) { isResult in
+                        handleStudentInfoRegisterSave(studentInfoDic: menuInfoDic, documentID: documentKey) { isResult in
                             self.sendStudentInfoSaveResult(documentID: documentKey)
                         }
                 }
@@ -336,6 +336,15 @@ struct SignUpView: UIViewRepresentable {
         private func handleMenuItemReq(menuItem: [String: Any]) {
             if let documentID = menuItem["key"] as? String,
                !documentID.isEmpty {
+#if true
+                authGate?.fetchStudentInfo(field: documentID, menuItem: menuItem) { [weak self] menuItem in
+                    guard let menu = menuItem
+                    else {
+                        return
+                    }
+                    self?.sendUserInfoResult(payload: menu)
+                }
+#else
                 Task {
                     do {
                         if let menuItem = try await authGate?.fetchUserDocumentInfo(documentID: documentID, menuItem: menuItem) {
@@ -345,11 +354,12 @@ struct SignUpView: UIViewRepresentable {
                         
                     }
                 }
+#endif
             }
         }
         
-        private func handleStudentInfoRegisterSave(schoolDict: [String: Any],  documentID: String, completion: @escaping ((Bool) -> Void)) {
-            authGate?.saveSchoolInfo(documentID: documentID, schoolPayload: schoolDict) { isResult in
+        private func handleStudentInfoRegisterSave(studentInfoDic: [String: Any],  documentID: String, completion: @escaping ((Bool) -> Void)) {
+            authGate?.saveStudentInfo(documentID: documentID, studentInfoDic: studentInfoDic) { isResult in
                 completion(isResult)
             }
         }

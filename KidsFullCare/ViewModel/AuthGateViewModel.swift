@@ -544,6 +544,32 @@ final class AuthGateViewModel: ObservableObject {
         return menuDic
     }
     
+    func fetchStudentInfo(field: String, menuItem: [String: Any], completion: @escaping(([String: Any]?) -> Void)) {
+        guard let user = Auth.auth().currentUser
+        else {
+            return completion(nil)
+        }
+        db.collection("users")
+            .document(user.uid)
+            .getDocument { snapshot, error in
+                guard let data = snapshot?.data(),
+                      let studentInfo = data[StudentInfoKey.root] as? [String: Any],
+                      let menuInfoArray = studentInfo[field] as? [[String: Any]],
+                        !menuInfoArray.isEmpty,
+                      var menuDic = menuInfoArray.last
+                else {
+                    DispatchQueue.main.async {
+                        completion(nil)
+                    }
+                    return
+                }
+                menuDic.merge(menuItem) { (current, _) in current }
+                DispatchQueue.main.async {
+                    completion(menuDic)
+                }
+            }
+    }
+    
     func fetchAllUserDocumentInfo(userUid: String, documents: [StudentMenu]) async throws -> [[String: Any]]? {
         let docRef = db.collection("users").document(userUid)
         let snapshot = try await docRef.getDocument()
@@ -645,15 +671,28 @@ final class AuthGateViewModel: ObservableObject {
         state = .loggedIn(role: role)
     }
     
-    func saveSchoolInfo(documentID: String, schoolPayload: [String: Any], completion: @escaping ((Bool) -> Void))  {
-        if let uid = Auth.auth().currentUser?.uid {
-            db.collection("users").document(uid).updateData([
-                documentID: FieldValue.arrayUnion([schoolPayload])
-            ]) { error in
+    private func addStudentInfo(uid: String, field: String, studentInfo: [String: Any], completion: @escaping((Bool) -> Void)) {
+        var infoDic: [String: Any] = studentInfo
+        infoDic.updateValue(FieldValue.serverTimestamp(), forKey: "createdAt")
+        
+        db.collection("users")
+            .document(uid)
+            .setData([
+                StudentInfoKey.root: [
+                    field: FieldValue.arrayUnion([studentInfo])
+                ]
+            ], merge: true) { error in
                 DispatchQueue.main.async {
                     completion(error == nil)
                 }
             }
+    }
+    
+    func saveStudentInfo(documentID: String, studentInfoDic: [String: Any], completion: @escaping ((Bool) -> Void))  {
+        if let uid = Auth.auth().currentUser?.uid {
+            self.addStudentInfo(uid: uid, field: documentID, studentInfo: studentInfoDic, completion: completion)
+        } else {
+            completion(false)
         }
     }
     

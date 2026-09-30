@@ -8,6 +8,10 @@
 import Foundation
 import RealmSwift
 
+enum StudentInfoKey {
+    static let root = "studentInfo"
+}
+
 struct StudentMenu: Codable, Identifiable {
     let key: String
     var label: String
@@ -16,7 +20,6 @@ struct StudentMenu: Codable, Identifiable {
     var id: String { key }
     var register: Bool? = false
 }
-
 
 struct SchoolInfo: Codable {
     var KEY: String = ""                                // Firestore - document - field 이름 ==> 예) school, academy...
