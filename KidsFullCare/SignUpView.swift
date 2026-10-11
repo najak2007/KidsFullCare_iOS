@@ -56,6 +56,7 @@ struct SignUpView: UIViewRepresentable {
         userContentController.add(context.coordinator, name: "studentMenuRegisterSave")
         userContentController.add(context.coordinator, name: "fetchMainGridMenu")
         userContentController.add(context.coordinator, name: "menuItemReq")
+        userContentController.add(context.coordinator, name: "getHolidays")
         
         config.userContentController = userContentController
 
@@ -314,6 +315,11 @@ struct SignUpView: UIViewRepresentable {
                 if let menuItem = message.body as? [String: Any] {
                     handleMenuItemReq(menuItem: menuItem)
                 }
+            case "getHolidays":
+                if let getDate = message.body as? String {
+                    let isHoliday = handleGetHolidays(getDate: getDate)
+                    self.sendGetHoliday(isHoliday)
+                }
             default:
                 break
             }
@@ -364,8 +370,15 @@ struct SignUpView: UIViewRepresentable {
             }
         }
         
+        private func handleGetHolidays(getDate: String) -> Bool {
+            guard let date = getDate.toDate()
+            else {
+                return false
+            }
+            return Calendar.current.isDateInWeekend(date);
+        }
+        
         // MARK: - Apple Sign In
-
         private func startAppleSignIn() {
             let nonce = Self.randomNonceString()
             currentNonce = nonce
@@ -488,6 +501,26 @@ struct SignUpView: UIViewRepresentable {
                 webView?.evaluateJavaScript(jsScript, completionHandler: nil)
             } catch {
                 
+            }
+        }
+        
+        func sendGetHoliday(_ isHoliday: Bool) {
+            var payload: [String: Any] = ["isHoliday": isHoliday]
+            
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
+                  let jsonString = String(data: jsonData, encoding: .utf8)
+            else {
+                return
+            }
+            
+            let jsScript = """
+                (function() {
+                    window.onNativeHoliday && window.onNativeHoliday(\(jsonString));
+                    return null;
+                })();
+                """
+            DispatchQueue.main.async { [weak self] in
+                self?.webView?.evaluateJavaScript(jsScript, completionHandler: nil)
             }
         }
         
