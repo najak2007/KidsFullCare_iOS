@@ -371,7 +371,7 @@ struct SignUpView: UIViewRepresentable {
         }
         
         private func handleGetHolidays(getDate: String) -> Bool {
-            guard let date = getDate.toDate()
+            guard let date = getDate.toDate("yyyyMMdd")
             else {
                 return false
             }
@@ -505,7 +505,7 @@ struct SignUpView: UIViewRepresentable {
         }
         
         func sendGetHoliday(_ isHoliday: Bool) {
-            var payload: [String: Any] = ["isHoliday": isHoliday]
+            let payload: [String: Any] = ["isHoliday": isHoliday]
             
             guard let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []),
                   let jsonString = String(data: jsonData, encoding: .utf8)

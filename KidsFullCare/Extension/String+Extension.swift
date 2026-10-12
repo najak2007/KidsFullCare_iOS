@@ -8,9 +8,9 @@
 import Foundation
 
 extension String {
-    func toDate() -> Date? {
+    func toDate(_ dateFormat: String = "yyyy-MM-dd") -> Date? {
         let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.dateFormat = dateFormat
         dateFormatter.timeZone = TimeZone(identifier: "UTC")
         
         if let date = dateFormatter.date(from: self) {
