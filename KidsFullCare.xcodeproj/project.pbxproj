@@ -376,6 +376,8 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "엄마의 마음";
 				INFOPLIST_KEY_NSCameraUsageDescription = "프로필 이미지 사용과 문서  촬영 후 Text로 변환하기 위한 권한을 요청합니다.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "얼굴 인증을 이용해 이메일 로그인을 지원하기 위해 권한을 요청합니다.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "지정한 장소에서  할일 목록을 보여주기 위해 위치 정보 접근 권한이 필요합니다.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "응급사항 발생 시 구조를 위해 실시간으로 사용자 위치 정보를 얻기 위해 접근 권한이 필요합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -389,7 +391,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.najak.KidsFullCare;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "애기돌봄_20260921";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "애기돌봄_20261013";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -421,6 +423,8 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "엄마의 마음";
 				INFOPLIST_KEY_NSCameraUsageDescription = "프로필 이미지 사용과 문서  촬영 후 Text로 변환하기 위한 권한을 요청합니다.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "얼굴 인증을 이용해 이메일 로그인을 지원하기 위해 권한을 요청합니다.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "지정한 장소에서  할일 목록을 보여주기 위해 위치 정보 접근 권한이 필요합니다.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "응급사항 발생 시 구조를 위해 실시간으로 사용자 위치 정보를 얻기 위해 접근 권한이 필요합니다.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -434,7 +438,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.najak.KidsFullCare;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "애기돌봄_20260921";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "애기돌봄_20261013";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
