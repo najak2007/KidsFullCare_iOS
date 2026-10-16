@@ -39,14 +39,17 @@ class MapViewModel: NSObject, ObservableObject {
     
     override init() {
         super.init()
+
+        locationManager.requestWhenInUseAuthorization()
+        locationManager.allowsBackgroundLocationUpdates = true              // Background 업데이트 활성화
+        locationManager.pausesLocationUpdatesAutomatically = false
+
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        locationManager.startUpdatingLocation()
         
-        
-        
-        do {
-            realm = try RealmManager.shared.realm
-        } catch {
-            
-        }
+        realm = RealmManager.shared.realm
+
     }
     
     func requestWhenInUseAuthorization(locationDidChangeAuthorization: @escaping (CLAuthorizationStatus) -> Void) {
@@ -54,5 +57,26 @@ class MapViewModel: NSObject, ObservableObject {
         self.locationDidChangeAuthorization = locationDidChangeAuthorization
 
         self.locationDidChangeAuthorization?(locationManager.authorizationStatus)
+    }
+}
+
+extension MapViewModel: CLLocationManagerDelegate {
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print("")
+        print("===============================")
+        print("[ViewController > didFailWithError() : 위치 정보 확인 에러]")
+        print("[error : \(error)]")
+        print("[localizedDescription : \(error.localizedDescription)]")
+        print("===============================")
+        print("")
+    }
+    
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        authorizationStatus = manager.authorizationStatus
+        
     }
 }
