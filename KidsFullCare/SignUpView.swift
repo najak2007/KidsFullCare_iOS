@@ -28,6 +28,7 @@ struct SignUpView: UIViewRepresentable {
     @ObservedObject var authGate: AuthGateViewModel
     @ObservedObject var studentMenuConfig: RemoteConfigManager
     @StateObject private var schoolViewModel = SchoolViewModel()
+    @StateObject private var mapViewModel = MapViewModel()
     
     let url: URL
     var onFirstLoad: (() -> Void)?
@@ -89,13 +90,14 @@ struct SignUpView: UIViewRepresentable {
     func updateUIView(_ uiView: WKWebView, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(viewModel: userViewModel, studentMenuConfig: studentMenuConfig, schoolViewModel: schoolViewModel)
+        Coordinator(viewModel: userViewModel, studentMenuConfig: studentMenuConfig, schoolViewModel: schoolViewModel, mapViewModel: mapViewModel)
     }
 
     class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler, WKUIDelegate, UIGestureRecognizerDelegate {
         let userViewModel: UserViewModel
         let studentMenuConfig: RemoteConfigManager
         let schoolViewModel: SchoolViewModel
+        let mapViewModel: MapViewModel
         var isInitialLoad: Bool = true
         private weak var webView: WKWebView?
         private var authGate: AuthGateViewModel?
@@ -106,10 +108,11 @@ struct SignUpView: UIViewRepresentable {
         // Apple 로그인 요청 시 사용한 원본(해시 전) nonce
         private var currentNonce: String?
 
-        init(viewModel: UserViewModel, studentMenuConfig: RemoteConfigManager, schoolViewModel: SchoolViewModel) {
+        init(viewModel: UserViewModel, studentMenuConfig: RemoteConfigManager, schoolViewModel: SchoolViewModel, mapViewModel: MapViewModel) {
             self.userViewModel = viewModel
             self.studentMenuConfig = studentMenuConfig
             self.schoolViewModel = schoolViewModel
+            self.mapViewModel = mapViewModel
         }
 
         /// WebView와 AuthGateViewModel을 연결하고, 상태가 바뀔 때마다 JS로 알려줍니다.
@@ -367,6 +370,12 @@ struct SignUpView: UIViewRepresentable {
         private func handleStudentInfoRegisterSave(studentInfoDic: [String: Any],  documentID: String, completion: @escaping ((Bool) -> Void)) {
             authGate?.saveStudentInfo(documentID: documentID, studentInfoDic: studentInfoDic) { isResult in
                 completion(isResult)
+            }
+            
+            if documentID == "school" || documentID == "academy" {
+                self.mapViewModel.requestWhenInUseAuthorization { authorizationState in
+                    
+                }
             }
         }
         

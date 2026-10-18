@@ -39,6 +39,13 @@ class MapViewModel: NSObject, ObservableObject {
     
     override init() {
         super.init()
+        realm = RealmManager.shared.realm
+    }
+    
+    
+    
+    func requestWhenInUseAuthorization(locationDidChangeAuthorization: @escaping (CLAuthorizationStatus) -> Void) {
+        locationManager.requestWhenInUseAuthorization()
 
         locationManager.requestWhenInUseAuthorization()
         locationManager.allowsBackgroundLocationUpdates = true              // Background 업데이트 활성화
@@ -48,12 +55,6 @@ class MapViewModel: NSObject, ObservableObject {
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
         locationManager.startUpdatingLocation()
         
-        realm = RealmManager.shared.realm
-
-    }
-    
-    func requestWhenInUseAuthorization(locationDidChangeAuthorization: @escaping (CLAuthorizationStatus) -> Void) {
-        locationManager.requestWhenInUseAuthorization()
         self.locationDidChangeAuthorization = locationDidChangeAuthorization
 
         self.locationDidChangeAuthorization?(locationManager.authorizationStatus)
