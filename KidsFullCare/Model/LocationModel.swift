@@ -15,6 +15,26 @@ class LocationInfoData: Object {
     @objc dynamic var address: String = ""
     @objc dynamic var date: Date = Date()
     @objc dynamic var alias: String = "집"
+    @objc dynamic var name: String = ""
+    
+    init() {}
+    
+    convenience init(id: String,
+                     latitude: Double,
+                     longitude: Double,
+                     address: String,
+                     alias: String = "집",
+                     name: String = "",
+                     date: Date = Date()) {
+        self.init()
+        self.id = id
+        self.latitude = latitude
+        self.longitude = longitude
+        self.address = address
+        self.alias = alias
+        self.date = date
+        self.name = name
+    }
 }
 
 class UserPlaceInfoData: Object, Comparable {

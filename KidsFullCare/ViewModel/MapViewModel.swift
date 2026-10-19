@@ -42,11 +42,7 @@ class MapViewModel: NSObject, ObservableObject {
         realm = RealmManager.shared.realm
     }
     
-    
-    
     func requestWhenInUseAuthorization(locationDidChangeAuthorization: @escaping (CLAuthorizationStatus) -> Void) {
-        locationManager.requestWhenInUseAuthorization()
-
         locationManager.requestWhenInUseAuthorization()
         locationManager.allowsBackgroundLocationUpdates = true              // Background 업데이트 활성화
         locationManager.pausesLocationUpdatesAutomatically = false
@@ -58,6 +54,70 @@ class MapViewModel: NSObject, ObservableObject {
         self.locationDidChangeAuthorization = locationDidChangeAuthorization
 
         self.locationDidChangeAuthorization?(locationManager.authorizationStatus)
+    }
+    
+    func convertAddressToGPS(documentID: String, address: String, studentInfoDic: [String: Any], completion: @escaping((Double, Double) -> Void)) {
+        let geocoder = CLGeocoder()
+
+        geocoder.geocodeAddressString(address.cleanAddress) { (placemarks: [CLPlacemark]?, error: Error?) in
+            if let error = error {
+    #if DEBUG
+                print("Geocoding 에러 발생: \(error.localizedDescription)")
+    #endif
+                return completion(0, 0)
+            }
+
+            guard
+                let location = placemarks?.first?.location
+            else {
+                return
+            }
+
+            let coordinate = location.coordinate
+    #if DEBUG
+            print("변환 성공! 위도: \(coordinate.latitude), 경도: \(coordinate.longitude)")
+    #endif
+            return completion(coordinate.latitude, coordinate.longitude)
+        }
+        completion(0, 0)
+    }
+    
+    func updateLocationInfoData(studentInfoDic: [String: Any], latitude: Double, longitude: Double) {
+        guard let _realm = realm,
+              let locationId = studentInfoDic["UID"] as? String,
+              let address = studentInfoDic["address"] as? String,
+              let documentID = studentInfoDic["KEY"] as? String,
+              let name = studentInfoDic["name"] as? String
+        else {
+            return
+        }
+        
+        let results = _realm.objects(LocationInfoData.self)
+        let locationList = Array(results)
+        
+        do {
+            try _realm.write {
+                guard let locationInfoData = locationList.filter( {$0.id == locationId} ).first
+                else {
+                    let _locationInfoData = LocationInfoData()
+                    _locationInfoData.id = locationId
+                    _locationInfoData.latitude = latitude
+                    _locationInfoData.longitude = longitude
+                    _locationInfoData.address = address
+                    _locationInfoData.alias = documentID
+                    _locationInfoData.name = name
+                    _realm.add(_locationInfoData)
+                    return
+                }
+                locationInfoData.address = address
+                locationInfoData.latitude = latitude
+                locationInfoData.longitude = longitude
+                locationInfoData.alias = documentID
+                locationInfoData.name = name
+            }
+        } catch {
+            
+        }
     }
 }
 

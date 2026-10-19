@@ -61,4 +61,12 @@ extension String {
         }
         return self
     }
+    
+    var cleanAddress: String {
+        var s = self.trimmingCharacters(in: .whitespacesAndNewlines)
+        s = s.replacingOccurrences(of: "\\([^)]*\\)", with: "", options: .regularExpression)
+        // 동/호 제거 (예: 101동 1203호)
+        s = s.replacingOccurrences(of: "\\s*\\d+동\\s*\\d+호.*$", with: "", options: .regularExpression)
+        return s.trimmingCharacters(in: .whitespaces)
+    }
 }

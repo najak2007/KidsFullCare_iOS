@@ -372,9 +372,25 @@ struct SignUpView: UIViewRepresentable {
                 completion(isResult)
             }
             
-            if documentID == "school" || documentID == "academy" {
-                self.mapViewModel.requestWhenInUseAuthorization { authorizationState in
+            guard let address = studentInfoDic["address"] as? String, address.isEmpty == false
+            else {
+                return
+            }
+            
+            self.mapViewModel.requestWhenInUseAuthorization { authorizationState in
+                if authorizationState == .authorizedAlways || authorizationState == .authorizedWhenInUse {
                     
+                    guard let latitude = studentInfoDic["latitude"] as? Double,
+                          latitude != 0.0,
+                          let longitude = studentInfoDic["longitude"] as? Double,
+                          longitude != 0.0
+                    else {
+                        self.mapViewModel.convertAddressToGPS(documentID: documentID, address: address, studentInfoDic: studentInfoDic) { latitude, longitude in
+                            self.mapViewModel.updateLocationInfoData(studentInfoDic: studentInfoDic, latitude: latitude, longitude: longitude)
+                        }
+                        return
+                    }
+                    self.mapViewModel.updateLocationInfoData(studentInfoDic: studentInfoDic, latitude: latitude, longitude: longitude)
                 }
             }
         }
