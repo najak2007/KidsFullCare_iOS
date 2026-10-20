@@ -8,6 +8,12 @@
 import Foundation
 import RealmSwift
 
+struct NearByPlaceInfoData {
+    var placeDataInfo: UserPlaceInfoData?
+    var isPushShow: Bool = true
+    var isBadgeInit: Bool = false
+}
+
 class LocationInfoData: Object {
     @objc dynamic var id: String = ""
     @objc dynamic var latitude: Double = 0
@@ -16,6 +22,11 @@ class LocationInfoData: Object {
     @objc dynamic var date: Date = Date()
     @objc dynamic var alias: String = "집"
     @objc dynamic var name: String = ""
+    @objc dynamic var isNearBy: Bool = false
+    
+    let attendDate =  List<Date>()
+    let leaveDate = List<Date>()
+    
     
     init() {}
     
@@ -25,7 +36,8 @@ class LocationInfoData: Object {
                      address: String,
                      alias: String = "집",
                      name: String = "",
-                     date: Date = Date()) {
+                     date: Date = Date(),
+                     isNearBy: Bool = false) {
         self.init()
         self.id = id
         self.latitude = latitude
@@ -34,6 +46,7 @@ class LocationInfoData: Object {
         self.alias = alias
         self.date = date
         self.name = name
+        self.isNearBy = isNearBy
     }
 }
 

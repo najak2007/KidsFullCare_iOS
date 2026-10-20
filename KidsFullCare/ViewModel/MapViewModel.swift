@@ -119,10 +119,76 @@ class MapViewModel: NSObject, ObservableObject {
             
         }
     }
+    
+    
+    
+    func getNearByLocation(latitude: Double, longitude: Double) -> NearByPlaceInfoData? {
+        guard let _realm = realm
+        else {
+            return nil
+        }
+        
+        let results = _realm.objects(LocationInfoData.self)
+        let locationLists = Array(results)
+        
+        if locationLists.count > 0 {
+            for locationInfoData in locationLists {
+                let distance: Double = getDistance(currentLatitude: latitude,
+                                                   currentLongitude: longitude,
+                                                   locationLatitude: locationInfoData.latitude,
+                                                   locationLongitude: locationInfoData.longitude)
+                if locationInfoData.isNearBy == false {
+                    if distance < 50 {
+                        
+                    }
+                } else {
+                    if distance > 100 {
+                        
+                    }
+                }
+            }
+        }
+        return nil
+    }
+    
+    private func setLocationOfIsNearByInit(locationInfoData: LocationInfoData? = nil, isNearBy: Bool = false) {
+        guard let _realm = realm
+        else {
+            return
+        }
+        let results = _realm.objects(LocationInfoData.self)
+        
+        let locationLists = Array(results)
+        
+        do {
+            try _realm.write {
+                for locationData in locationLists {
+                    locationData.isNearBy = false
+                }
+                if let _locationInfoData = locationInfoData {
+                    let locationArr = locationLists.filter
+                }
+            }
+        } catch {
+            
+        }
+    }
+    
+    private func getDistance(currentLatitude: Double, currentLongitude: Double, locationLatitude: Double, locationLongitude: Double) -> Double {
+        let currentLocation = CLLocation(latitude: currentLatitude, longitude: currentLongitude)
+        let location = CLLocation(latitude: locationLatitude, longitude: locationLongitude)
+        
+        return currentLocation.distance(from: location)
+    }
 }
 
 extension MapViewModel: CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.last
+        else {
+            return
+        }
+        let resultPlaceInfo: NearByPlaceInfoData
         
     }
     
