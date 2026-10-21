@@ -16,6 +16,7 @@ class Config {
     static let SAVED_STATE_KEY: String = "SavedBiometricDomainState"
     static let QRCODE_AUTH_TIME: Double = 125.0
     
+    static let NEARBY_DISTANCE: Double = 50.0
     
     static let APP_START_DATE: Date? = Calendar.current.date(from: DateComponents(year: 2026, month: 10, day: 1))
 }

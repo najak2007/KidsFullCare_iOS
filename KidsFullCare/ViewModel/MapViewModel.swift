@@ -61,9 +61,9 @@ class MapViewModel: NSObject, ObservableObject {
 
         geocoder.geocodeAddressString(address.cleanAddress) { (placemarks: [CLPlacemark]?, error: Error?) in
             if let error = error {
-    #if DEBUG
+#if DEBUG
                 print("Geocoding 에러 발생: \(error.localizedDescription)")
-    #endif
+#endif
                 return completion(0, 0)
             }
 
@@ -74,9 +74,9 @@ class MapViewModel: NSObject, ObservableObject {
             }
 
             let coordinate = location.coordinate
-    #if DEBUG
+#if DEBUG
             print("변환 성공! 위도: \(coordinate.latitude), 경도: \(coordinate.longitude)")
-    #endif
+#endif
             return completion(coordinate.latitude, coordinate.longitude)
         }
         completion(0, 0)
@@ -120,8 +120,6 @@ class MapViewModel: NSObject, ObservableObject {
         }
     }
     
-    
-    
     func getNearByLocation(latitude: Double, longitude: Double) -> NearByPlaceInfoData? {
         guard let _realm = realm
         else {
@@ -138,11 +136,11 @@ class MapViewModel: NSObject, ObservableObject {
                                                    locationLatitude: locationInfoData.latitude,
                                                    locationLongitude: locationInfoData.longitude)
                 if locationInfoData.isNearBy == false {
-                    if distance < 50 {
-                        
+                    if distance < Config.NEARBY_DISTANCE {
+                        return NearByPlaceInfoData(locationDataInfo: locationInfoData, isPushShow: true, isBadgeInit: false)
                     }
                 } else {
-                    if distance > 100 {
+                    if distance > Config.NEARBY_DISTANCE * 2 {
                         
                     }
                 }

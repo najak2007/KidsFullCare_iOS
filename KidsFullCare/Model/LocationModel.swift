@@ -9,7 +9,7 @@ import Foundation
 import RealmSwift
 
 struct NearByPlaceInfoData {
-    var placeDataInfo: UserPlaceInfoData?
+    var locationDataInfo: LocationInfoData?
     var isPushShow: Bool = true
     var isBadgeInit: Bool = false
 }
