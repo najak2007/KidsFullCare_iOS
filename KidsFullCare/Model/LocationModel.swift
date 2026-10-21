@@ -15,17 +15,17 @@ struct NearByPlaceInfoData {
 }
 
 class LocationInfoData: Object {
-    @objc dynamic var id: String = ""
-    @objc dynamic var latitude: Double = 0
-    @objc dynamic var longitude: Double = 0
-    @objc dynamic var address: String = ""
-    @objc dynamic var date: Date = Date()
-    @objc dynamic var alias: String = "집"
-    @objc dynamic var name: String = ""
-    @objc dynamic var isNearBy: Bool = false
+    @Persisted dynamic var id: String = ""
+    @Persisted dynamic var latitude: Double = 0
+    @Persisted dynamic var longitude: Double = 0
+    @Persisted dynamic var address: String = ""
+    @Persisted dynamic var date: Date = Date()
+    @Persisted dynamic var alias: String = "집"
+    @Persisted dynamic var name: String = ""
+    @Persisted dynamic var isNearBy: Bool = false
     
-    let attendDate =  List<Date>()
-    let leaveDate = List<Date>()
+    @Persisted dynamic var attendDate: List<Date> = List<Date>()
+    @Persisted dynamic var leaveDate: List<Date> = List<Date>()
     
     
     init() {}
@@ -51,17 +51,17 @@ class LocationInfoData: Object {
 }
 
 class UserPlaceInfoData: Object, Comparable {
-    @objc dynamic var id: String = ""
-    @objc dynamic var latitude: Double = 0
-    @objc dynamic var longitude: Double = 0
-    @objc dynamic var address: String = ""
-    @objc dynamic var inDate: Date = Date()
-    @objc dynamic var outDate: Date = Date()
-    @objc dynamic var alias: String = ""
-    @objc dynamic var isInitStatus: Bool = true
-    @objc dynamic var orderByIndex: Int = 0
-    @objc dynamic var isNearBy: Bool = false
-    @objc dynamic var isDelete: Bool = false
+    @Persisted dynamic var id: String = ""
+    @Persisted dynamic var latitude: Double = 0
+    @Persisted dynamic var longitude: Double = 0
+    @Persisted dynamic var address: String = ""
+    @Persisted dynamic var inDate: Date = Date()
+    @Persisted dynamic var outDate: Date = Date()
+    @Persisted dynamic var alias: String = ""
+    @Persisted dynamic var isInitStatus: Bool = true
+    @Persisted dynamic var orderByIndex: Int = 0
+    @Persisted dynamic var isNearBy: Bool = false
+    @Persisted dynamic var isDelete: Bool = false
     
     static func < (lhs: UserPlaceInfoData, rhs: UserPlaceInfoData) -> Bool {
         return lhs.orderByIndex < rhs.orderByIndex
