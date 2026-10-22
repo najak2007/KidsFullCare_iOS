@@ -120,7 +120,27 @@ class MapViewModel: NSObject, ObservableObject {
         }
     }
     
-    func getNearByLocation(latitude: Double, longitude: Double) -> NearByPlaceInfoData? {
+    func getNearByLocationCheck(latitude: Double, longitude: Double) -> LocationInfoData? {
+        guard let realm = realm
+        else {
+            return nil
+        }
+        
+        let results = realm.objects(LocationInfoData.self)
+        let locationLists = Array(results)
+        
+        if locationLists.count > 0 {
+            for locationInfoData in locationLists {
+                let distance: Double = getDistance(currentLatitude: latitude, currentLongitude: longitude, locationLatitude: locationInfoData.latitude, locationLongitude: locationInfoData.longitude)
+                if distance < Config.NEARBY_DISTANCE {
+                    return locationInfoData
+                }
+            }
+        }
+        return nil
+    }
+    
+    func getNearByLocation(latitude: Double, longitude: Double) -> LocationInfoCheck? {
         guard let _realm = realm
         else {
             return nil
@@ -137,11 +157,11 @@ class MapViewModel: NSObject, ObservableObject {
                                                    locationLongitude: locationInfoData.longitude)
                 if locationInfoData.isNearBy == false {
                     if distance < Config.NEARBY_DISTANCE {
-                        return NearByPlaceInfoData(locationDataInfo: locationInfoData, isPushShow: true, isBadgeInit: false)
+                        return LocationInfoCheck(locationInfoData: locationInfoData, locationState: .들어옴)
                     }
                 } else {
                     if distance > Config.NEARBY_DISTANCE * 2 {
-                        
+                        return LocationInfoCheck(locationInfoData: locationInfoData, locationState: .나감)
                     }
                 }
             }
@@ -186,8 +206,17 @@ extension MapViewModel: CLLocationManagerDelegate {
         else {
             return
         }
-        let resultPlaceInfo: NearByPlaceInfoData
         
+        guard let resultPlaceInfo = self.getNearByLocation(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
+        else {
+            return
+        }
+        
+        if resultPlaceInfo.locationState == .들어옴 {
+            
+        } else if resultPlaceInfo.locationState == .나감 {
+            
+        }
     }
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {

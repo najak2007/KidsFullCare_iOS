@@ -8,10 +8,14 @@
 import Foundation
 import RealmSwift
 
-struct NearByPlaceInfoData {
-    var locationDataInfo: LocationInfoData?
-    var isPushShow: Bool = true
-    var isBadgeInit: Bool = false
+struct LocationInfoCheck {
+    let locationInfoData: LocationInfoData
+    let locationState: LocationState
+}
+
+enum LocationState {
+    case 들어옴
+    case 나감
 }
 
 class LocationInfoData: Object {
