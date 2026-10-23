@@ -157,11 +157,27 @@ class MapViewModel: NSObject, ObservableObject {
                                                    locationLongitude: locationInfoData.longitude)
                 if locationInfoData.isNearBy == false {
                     if distance < Config.NEARBY_DISTANCE {
-                        return LocationInfoCheck(locationInfoData: locationInfoData, locationState: .들어옴)
+                        do {
+                            try _realm.write {
+                                locationInfoData.isNearBy = true
+                                locationInfoData.attendDate.append(Date())
+                                return LocationInfoCheck(locationInfoData: locationInfoData, locationState: .들어옴)
+                            }
+                        } catch {
+                            
+                        }
                     }
                 } else {
                     if distance > Config.NEARBY_DISTANCE * 2 {
-                        return LocationInfoCheck(locationInfoData: locationInfoData, locationState: .나감)
+                        do {
+                            try _realm.write {
+                                locationInfoData.isNearBy = false
+                                locationInfoData.leaveDate.append(Date())
+                                return LocationInfoCheck(locationInfoData: locationInfoData, locationState: .나감)
+                            }
+                        } catch {
+                            
+                        }
                     }
                 }
             }
