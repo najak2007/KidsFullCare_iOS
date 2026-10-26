@@ -14,6 +14,7 @@ import Combine
 import FirebaseAuth
 import PhotosUI
 import UIKit
+import FirebaseFunctions
 
 enum HTTPMethod: String {
     case get = "GET"
@@ -301,8 +302,12 @@ struct SignUpView: UIViewRepresentable {
             case "studentMenuRegisterSave":
                 if let menuInfoDic = message.body as? [String: Any],
                    let documentKey = menuInfoDic["KEY"] as? String {
-                        handleStudentInfoRegisterSave(studentInfoDic: menuInfoDic, documentID: documentKey) { isResult in
-                            self.sendStudentInfoSaveResult(documentID: documentKey)
+                        handleStudentInfoRegisterSave(studentInfoDic: menuInfoDic, documentID: documentKey) { [weak self] isResult in
+                            self?.sendStudentInfoSaveResult(documentID: documentKey)
+                            
+                            if isResult {
+                                self?.notifyParentsStudentInfoRegistered()
+                            }
                         }
                 }
             case "fetchMainGridMenu":
@@ -340,6 +345,23 @@ struct SignUpView: UIViewRepresentable {
                 return false
             }
             return true
+        }
+        
+        private func notifyParentsStudentInfoRegistered() {
+            Task {
+                do {
+                    let callable = Functions.functions(region: "us-central1")
+                        .httpsCallable("notifyParentsStudentInfo")
+                    let result = try await callable.call()
+#if DEBUG
+                    print("부모 푸시 요청 결과: \(String(describing: result.data))")
+#endif
+                } catch {
+#if DEBUG
+                    print("부모 푸시 요청 실패 : \(error)");
+#endif
+                }
+            }
         }
         
         private func handleMenuItemReq(menuItem: [String: Any]) {
