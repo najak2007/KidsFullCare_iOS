@@ -161,6 +161,7 @@ struct SignUpView: UIViewRepresentable {
                     }
                 }
                 authGate?.fetchLinkCodeExist()
+                NotificationManager.shared.fetchCurrentToken()
                 return
             case .signUp:
                 payload["status"] = "signUp"
